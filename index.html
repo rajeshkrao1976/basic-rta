@@ -21,12 +21,18 @@
         .odoo-card { background: white; border: 1px solid #e2e8f0; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
         .odoo-btn-primary { background-color: #008784; color: white; transition: background-color 0.2s; } 
         .odoo-btn-primary:hover { background-color: #006e6b; }
+        .sidebar-item { border-left: 3px solid transparent; cursor: pointer; }
+        .sidebar-item:hover { background-color: #f9fafb; }
         .sidebar-item.active { background-color: #f3f4f6; border-left: 3px solid #714B67; color: #714B67; font-weight: 600; }
         .loader { border-top-color: #714B67; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         /* Fade in animation */
-        .fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Timeline styles for Course View */
+        .timeline-line { position: absolute; left: 23px; top: 40px; bottom: -20px; width: 2px; background-color: #e5e7eb; z-index: 0; }
+        .last-item .timeline-line { display: none; }
     </style>
 </head>
 <body>
@@ -37,7 +43,7 @@
         // ⚠️ PASTE YOUR WEB APP URL INSIDE THE QUOTES BELOW ⚠️
         const API_URL = "https://script.google.com/macros/s/AKfycbwm5_1NOgnQzZyDlBJ4yxAxUal1G3CkSTCKTEzhRErIkO_OcQ6k2bzSVtH8qRaMwOm7/exec"; 
 
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useMemo } = React;
 
         // --- COMPONENTS ---
 
@@ -101,15 +107,20 @@
         }
 
         function Dashboard({ data, onNavigate }) {
-            // Safety check for data
             if (!data || !data.courses) return <div className="p-6 text-red-500">Error: Data is incomplete.</div>;
 
             const { student, enrollment, academicStatus, courses } = data;
             
-            // Calculate progress safely
             const completedLessons = courses.reduce((acc, c) => acc + (c.lessons ? c.lessons.filter(l => l.isCompleted).length : 0), 0);
             const totalLessons = courses.reduce((acc, c) => acc + (c.lessons ? c.lessons.length : 0), 0);
             const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+            // Filter active courses (courses belonging to the current term or previously active)
+            const activeCourses = courses.filter(c => {
+                 // Assuming backend returns Term info in lessons, we approximate Course Term based on first lesson
+                 const courseTerm = c.lessons && c.lessons.length > 0 ? c.lessons[0].Term : 1;
+                 return courseTerm <= academicStatus.currentTerm;
+            });
 
             return (
                 <div className="p-6 fade-in max-w-7xl mx-auto">
@@ -141,30 +152,31 @@
                                 <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-1000" style={{width: `${overallProgress}%`}}></div>
                             </div>
                         </div>
-                        <div className="odoo-card p-5 border-l-4 border-green-500">
-                            <div className="text-gray-500 text-xs uppercase font-bold tracking-wider mb-1">Enrolled On</div>
-                            <div className="text-2xl font-bold text-gray-800">
-                                {new Date(enrollment.EnrollmentDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-1">{academicStatus.daysEnrolled} days ago</div>
-                        </div>
                          <div className="odoo-card p-5 border-l-4 border-orange-500">
                             <div className="text-gray-500 text-xs uppercase font-bold tracking-wider mb-1">Active Courses</div>
                             <div className="text-2xl font-bold text-gray-800">
-                                {courses.length}
+                                {activeCourses.length}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">Parallel Modules</div>
                         </div>
+                        <div className="odoo-card p-5 border-l-4 border-green-500 flex flex-col justify-center items-center cursor-pointer hover:bg-green-50 transition" onClick={() => onNavigate('assignments')}>
+                             <i className="fas fa-tasks text-3xl text-green-600 mb-1"></i>
+                             <div className="text-sm font-bold text-gray-700">View Assignments</div>
+                        </div>
                     </div>
 
-                    <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">My Active Courses</h3>
-                    {courses.length === 0 ? (
+                    <div className="flex justify-between items-center mb-4 border-b pb-2">
+                         <h3 className="text-lg font-bold text-gray-800">My Active Courses</h3>
+                         <button onClick={() => onNavigate('courses')} className="text-sm text-purple-600 font-bold hover:underline">View All Programs</button>
+                    </div>
+                    
+                    {activeCourses.length === 0 ? (
                          <div className="text-center py-10 bg-white rounded border border-dashed border-gray-300">
-                            <p className="text-gray-500">No courses assigned yet. Contact Admin.</p>
+                            <p className="text-gray-500">No courses currently active. Check back when the term starts.</p>
                          </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                            {courses.map(course => (
+                            {activeCourses.slice(0, 4).map(course => (
                                 <div key={course.CourseID} className="odoo-card flex flex-col h-full hover:shadow-lg transition-shadow duration-300 group">
                                     <div className="p-6 flex-grow">
                                         <div className="flex justify-between items-start mb-2">
@@ -196,56 +208,239 @@
             );
         }
 
-        function CourseView({ course, onBack, onSelectLesson }) {
+        // --- NEW: COURSES FLOW VIEW ---
+        function CoursesList({ courses, onNavigate }) {
+            // Group courses by Term
+            const groupedCourses = useMemo(() => {
+                const groups = { 1: [], 2: [], 3: [] }; // Assuming 3 terms
+                courses.forEach(course => {
+                    const term = course.lessons && course.lessons.length > 0 ? parseInt(course.lessons[0].Term) : 1;
+                    if (!groups[term]) groups[term] = [];
+                    groups[term].push(course);
+                });
+                return groups;
+            }, [courses]);
+
+            return (
+                <div className="p-6 fade-in max-w-6xl mx-auto">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Program Curriculum</h2>
+                    
+                    {[1, 2, 3].map(termId => {
+                        const termCourses = groupedCourses[termId] || [];
+                        if (termCourses.length === 0) return null;
+
+                        return (
+                            <div key={termId} className="mb-10 relative">
+                                <div className="flex items-center mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-lg shadow-md z-10">
+                                        {termId}
+                                    </div>
+                                    <div className="ml-4">
+                                        <h3 className="text-xl font-bold text-gray-800">Term {termId}</h3>
+                                        <p className="text-sm text-gray-500">Core Modules & Specializations</p>
+                                    </div>
+                                </div>
+                                
+                                {/* Connecting Line */}
+                                {termId < 3 && <div className="absolute left-5 top-10 bottom-[-40px] w-0.5 bg-gray-200"></div>}
+
+                                <div className="ml-14 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {termCourses.map(course => {
+                                        const progress = Math.round((course.lessons.filter(l => l.isCompleted).length / course.lessons.length) * 100) || 0;
+                                        return (
+                                            <div key={course.CourseID} className="odoo-card hover:shadow-md transition cursor-pointer" onClick={() => onNavigate('course', course)}>
+                                                <div className="p-5">
+                                                    <div className="flex justify-between items-start">
+                                                        <h4 className="font-bold text-gray-800 mb-1">{course.CourseName}</h4>
+                                                        {progress === 100 ? (
+                                                            <i className="fas fa-check-circle text-green-500"></i>
+                                                        ) : (
+                                                            <span className="text-xs font-bold text-gray-400">{course.Code}</span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm text-gray-500 line-clamp-2 mb-3">{course.Description}</p>
+                                                    
+                                                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2">
+                                                        <div className={`h-1.5 rounded-full ${progress === 100 ? 'bg-green-500' : 'bg-purple-600'}`} style={{width: `${progress}%`}}></div>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs text-gray-500">
+                                                        <span>{course.lessons.length} Modules</span>
+                                                        <span>{progress}% Done</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        }
+
+        // --- NEW: ASSIGNMENTS CENTER ---
+        function AssignmentsView({ courses, onNavigate }) {
+            // Flatten all lessons that are unlocked
+            const assignments = useMemo(() => {
+                let all = [];
+                courses.forEach(c => {
+                    if (c.lessons) {
+                        c.lessons.forEach(l => {
+                            if (!l.isLocked) {
+                                all.push({
+                                    ...l,
+                                    CourseName: c.CourseName,
+                                    CourseCode: c.Code
+                                });
+                            }
+                        });
+                    }
+                });
+                return all.sort((a, b) => (a.isCompleted === b.isCompleted) ? 0 : a.isCompleted ? 1 : -1);
+            }, [courses]);
+
+            const pending = assignments.filter(a => !a.isCompleted);
+            const completed = assignments.filter(a => a.isCompleted);
+
+            return (
+                <div className="p-6 fade-in max-w-6xl mx-auto">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Assignments Center</h2>
+                    <p className="text-gray-500 mb-6">Manage your workbooks and submissions.</p>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* PENDING COLUMN */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <h3 className="font-bold text-gray-700 border-b pb-2">
+                                <i className="fas fa-clock text-orange-500 mr-2"></i> Pending Submission ({pending.length})
+                            </h3>
+                            
+                            {pending.length === 0 ? (
+                                <div className="text-center p-8 bg-white border border-dashed rounded text-gray-400">
+                                    <i className="fas fa-check-circle text-4xl mb-3 text-green-100"></i>
+                                    <p>All caught up! No pending assignments.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {pending.map((a, idx) => (
+                                        <div key={idx} className="bg-white border-l-4 border-orange-400 p-4 rounded shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+                                            <div className="mb-3 md:mb-0">
+                                                <div className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">
+                                                    {a.CourseCode} • Term {a.Term} Week {a.Week}
+                                                </div>
+                                                <h4 className="font-bold text-gray-800">{a.LessonTitle}</h4>
+                                                <p className="text-sm text-gray-500">Workbook submission required</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => onNavigate('lesson', null, a)}
+                                                className="px-4 py-2 bg-orange-50 text-orange-700 text-sm font-bold rounded hover:bg-orange-100 whitespace-nowrap"
+                                            >
+                                                Open Workbook
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* COMPLETED COLUMN */}
+                        <div>
+                            <h3 className="font-bold text-gray-700 border-b pb-2 mb-4">
+                                <i className="fas fa-history text-gray-400 mr-2"></i> History ({completed.length})
+                            </h3>
+                            <div className="bg-white rounded border border-gray-200 overflow-hidden">
+                                {completed.length === 0 ? (
+                                    <div className="p-4 text-center text-sm text-gray-400">No submissions yet.</div>
+                                ) : (
+                                    <ul className="divide-y divide-gray-100">
+                                        {completed.map((a, idx) => (
+                                            <li key={idx} className="p-3 hover:bg-gray-50 transition flex items-center">
+                                                <i className="fas fa-check text-green-500 mr-3 text-sm"></i>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-800 truncate">{a.LessonTitle}</p>
+                                                    <p className="text-xs text-gray-400">{a.CourseName}</p>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function CourseDetail({ course, onBack, onSelectLesson }) {
             return (
                 <div className="p-6 fade-in max-w-5xl mx-auto">
                     <button onClick={onBack} className="text-gray-500 hover:text-gray-800 mb-6 flex items-center font-medium transition-colors">
                         <div className="w-8 h-8 rounded-full bg-white border flex items-center justify-center mr-2 shadow-sm">
                             <i className="fas fa-arrow-left text-sm"></i>
                         </div>
-                        Back to Dashboard
+                        Back to Courses
                     </button>
                     
-                    <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{course.CourseName}</h1>
-                        <p className="text-gray-600 leading-relaxed">{course.Description}</p>
-                        <div className="mt-4 flex items-center space-x-4">
-                            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100">
+                    <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 mb-8 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-10 opacity-5">
+                            <i className="fas fa-graduation-cap fa-10x"></i>
+                        </div>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2 relative z-10">{course.CourseName}</h1>
+                        <p className="text-gray-600 leading-relaxed relative z-10 max-w-3xl">{course.Description}</p>
+                        <div className="mt-4 flex items-center space-x-4 relative z-10">
+                            <span className="text-xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full font-bold">
+                                {course.Code}
+                            </span>
+                            <span className="text-xs text-gray-500">
                                 <i className="far fa-clock mr-1"></i> {course.DurationWeeks} Weeks
                             </span>
                         </div>
                     </div>
 
-                    <div className="space-y-4">
-                        {course.lessons && course.lessons.map((lesson, idx) => (
-                            <div key={lesson.LessonID} className={`odoo-card p-4 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center transition-colors ${lesson.isLocked ? 'bg-gray-50' : 'bg-white hover:border-purple-300'}`}>
-                                <div className="flex items-start mb-4 md:mb-0">
-                                    <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center mr-5 ${lesson.isLocked ? 'bg-gray-200 text-gray-400' : (lesson.isCompleted ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600')}`}>
-                                        <i className={`fas ${lesson.isLocked ? 'fa-lock' : (lesson.isCompleted ? 'fa-check' : 'fa-play')} text-lg`}></i>
+                    <div className="space-y-0 relative"> 
+                        {course.lessons && course.lessons.map((lesson, idx) => {
+                             const isLast = idx === course.lessons.length - 1;
+                             return (
+                                <div key={lesson.LessonID} className={`relative pl-12 pb-8 ${isLast ? 'last-item' : ''}`}>
+                                    {/* Timeline Line */}
+                                    <div className="timeline-line"></div>
+                                    
+                                    {/* Timeline Dot */}
+                                    <div className={`absolute left-0 top-0 w-12 h-12 rounded-full border-4 border-f6f7fa z-10 flex items-center justify-center shadow-sm
+                                        ${lesson.isLocked ? 'bg-gray-200 text-gray-400' : (lesson.isCompleted ? 'bg-green-500 text-white' : 'bg-white text-purple-600 border-purple-100')}`}>
+                                        <i className={`fas ${lesson.isLocked ? 'fa-lock' : (lesson.isCompleted ? 'fa-check' : 'fa-play')} text-sm`}></i>
                                     </div>
-                                    <div>
-                                        <div className="flex items-center mb-1">
-                                            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 mr-2">Week {lesson.Week}</span>
-                                            {lesson.isCompleted && <span className="text-xs bg-green-100 text-green-800 px-2 rounded-full">Completed</span>}
+
+                                    {/* Card */}
+                                    <div className={`odoo-card p-5 ml-4 transition-all ${lesson.isLocked ? 'bg-gray-50 opacity-70' : 'bg-white hover:border-purple-300 hover:shadow-md'}`}>
+                                        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                                            <div>
+                                                <div className="flex items-center mb-1">
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-gray-400 mr-2">Week {lesson.Week}</span>
+                                                    {lesson.isCompleted && <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Completed</span>}
+                                                </div>
+                                                <h5 className="font-bold text-lg text-gray-800">{lesson.LessonTitle}</h5>
+                                                <span className="text-sm text-gray-500">Term {lesson.Term} • {lesson.Duration} mins estimate</span>
+                                            </div>
+                                            
+                                            {lesson.isLocked ? (
+                                                <div className="flex items-center text-gray-400 text-sm italic bg-gray-100 px-3 py-1.5 rounded self-start md:self-center">
+                                                    <i className="fas fa-lock mr-2"></i> Locked
+                                                </div>
+                                            ) : (
+                                                <button 
+                                                    onClick={() => onSelectLesson(lesson)}
+                                                    className={`px-6 py-2 rounded-md text-sm font-bold shadow-sm transition-all whitespace-nowrap self-start md:self-center
+                                                        ${lesson.isCompleted ? 'border border-gray-300 text-gray-600 hover:bg-gray-50' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+                                                >
+                                                    {lesson.isCompleted ? 'Review Lesson' : 'Start Learning'}
+                                                </button>
+                                            )}
                                         </div>
-                                        <h5 className={`font-bold text-lg ${lesson.isLocked ? 'text-gray-400' : 'text-gray-800'}`}>{lesson.LessonTitle}</h5>
-                                        <span className="text-sm text-gray-500">Term {lesson.Term} • {lesson.Duration} mins estimate</span>
                                     </div>
                                 </div>
-                                {lesson.isLocked ? (
-                                    <div className="flex items-center text-gray-400 text-sm italic bg-gray-100 px-3 py-1 rounded">
-                                        <i className="fas fa-lock mr-2"></i> Locked
-                                    </div>
-                                ) : (
-                                    <button 
-                                        onClick={() => onSelectLesson(lesson)}
-                                        className={`px-6 py-2 border rounded-md text-sm font-bold shadow-sm transition-all ${lesson.isCompleted ? 'border-gray-300 text-gray-600 hover:bg-gray-50' : 'border-purple-600 text-purple-600 hover:bg-purple-50'}`}
-                                    >
-                                        {lesson.isCompleted ? 'Review Lesson' : 'Start Learning'}
-                                    </button>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             );
@@ -278,7 +473,7 @@
                 <div className="flex flex-col h-full bg-white">
                     <div className="border-b px-6 py-4 flex items-center justify-between bg-white shadow-sm z-10">
                         <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm font-medium flex items-center">
-                            <i className="fas fa-arrow-left mr-2"></i> Back to Course
+                            <i className="fas fa-arrow-left mr-2"></i> Back
                         </button>
                         <h2 className="font-bold text-lg truncate max-w-xl hidden md:block">{lesson.LessonTitle}</h2>
                         <div className="w-20"></div> {/* Spacer */}
@@ -412,9 +607,8 @@
                     } else {
                         console.error("API Error:", result.error);
                         setError(result.error);
-                        // If student data not found, logout to prevent loop
                         if(result.error && result.error.includes("not found")) {
-                             // handleLogout(); // Optional: force logout
+                             // Optional: force logout
                         }
                     }
                 } catch (e) {
@@ -467,6 +661,18 @@
                         headers: { "Content-Type": "text/plain;charset=utf-8" }
                     });
                     const result = await response.json();
+                    
+                    // Optimistic update locally
+                    if(result.success && studentData) {
+                         const updatedCourses = studentData.courses.map(c => ({
+                             ...c,
+                             lessons: c.lessons.map(l => 
+                                l.LessonID === lessonId ? { ...l, isCompleted: true } : l
+                             )
+                         }));
+                         setStudentData({ ...studentData, courses: updatedCourses });
+                    }
+
                     return result;
                 } catch(e) {
                     console.error(e);
@@ -480,6 +686,22 @@
                 setError(null);
                 setView("dashboard");
                 localStorage.removeItem("rta_user");
+            };
+
+            const onNavigate = (targetView, courseData = null, lessonData = null) => {
+                setView(targetView);
+                if (courseData) setSelectedCourse(courseData);
+                if (lessonData) {
+                    // When navigating directly to a lesson (e.g., from assignments),
+                    // we might need to set the selected course too for the "Back" button to work
+                    if(!courseData && studentData) {
+                         // Find the course this lesson belongs to
+                         // Note: We used CourseName in the assignment object
+                         const parentCourse = studentData.courses.find(c => c.CourseName === lessonData.CourseName);
+                         if(parentCourse) setSelectedCourse(parentCourse);
+                    }
+                    setSelectedLesson(lessonData);
+                }
             };
 
             // RENDER LOGIC
@@ -522,18 +744,21 @@
                         </div>
                         <div className="flex-1 overflow-y-auto py-4">
                             <nav className="space-y-1">
-                                <button onClick={() => setView('dashboard')} className={`w-full text-left sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors ${view === 'dashboard' ? 'active' : ''}`}>
+                                <div onClick={() => onNavigate('dashboard')} className={`sidebar-item flex items-center px-6 py-3 text-gray-600 ${view === 'dashboard' ? 'active' : ''}`}>
                                     <i className="fas fa-th-large w-6 text-center"></i> <span className="ml-2">Dashboard</span>
-                                </button>
-                                <button className="w-full text-left sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
-                                    <i className="fas fa-calendar-check w-6 text-center"></i> <span className="ml-2">Exam Schedule</span>
-                                </button>
-                                <button className="w-full text-left sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                                </div>
+                                <div onClick={() => onNavigate('courses')} className={`sidebar-item flex items-center px-6 py-3 text-gray-600 ${view === 'courses' || view === 'course' || view === 'lesson' ? 'active' : ''}`}>
+                                    <i className="fas fa-book w-6 text-center"></i> <span className="ml-2">My Courses</span>
+                                </div>
+                                <div onClick={() => onNavigate('assignments')} className={`sidebar-item flex items-center px-6 py-3 text-gray-600 ${view === 'assignments' ? 'active' : ''}`}>
+                                    <i className="fas fa-tasks w-6 text-center"></i> <span className="ml-2">Assignments</span>
+                                </div>
+                                <div className="sidebar-item flex items-center px-6 py-3 text-gray-600">
                                     <i className="fas fa-award w-6 text-center"></i> <span className="ml-2">My Grades</span>
-                                </button>
-                                <button className="w-full text-left sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                                </div>
+                                <div className="sidebar-item flex items-center px-6 py-3 text-gray-600">
                                     <i className="fas fa-user w-6 text-center"></i> <span className="ml-2">Profile</span>
-                                </button>
+                                </div>
                             </nav>
                         </div>
                         <div className="p-4 border-t bg-gray-50">
@@ -564,8 +789,10 @@
                         </div>
 
                         <div className="flex-1 overflow-y-auto bg-gray-50/50">
-                            {view === 'dashboard' && <Dashboard data={studentData} onNavigate={(v, data) => { setView(v); setSelectedCourse(data); }} />}
-                            {view === 'course' && <CourseView course={selectedCourse} onBack={() => setView('dashboard')} onSelectLesson={(l) => { setSelectedLesson(l); setView('lesson'); }} />}
+                            {view === 'dashboard' && <Dashboard data={studentData} onNavigate={onNavigate} />}
+                            {view === 'courses' && <CoursesList courses={studentData.courses} onNavigate={onNavigate} />}
+                            {view === 'assignments' && <AssignmentsView courses={studentData.courses} onNavigate={onNavigate} />}
+                            {view === 'course' && <CourseDetail course={selectedCourse} onBack={() => setView('courses')} onSelectLesson={(l) => onNavigate('lesson', selectedCourse, l)} />}
                             {view === 'lesson' && <LessonPlayer lesson={selectedLesson} user={user} onBack={() => setView('course')} onSubmitAssignment={handleSubmitAssignment} />}
                         </div>
                     </div>
