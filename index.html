@@ -30,7 +30,6 @@
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Timeline styles for Course View */
         .timeline-line { position: absolute; left: 23px; top: 40px; bottom: -20px; width: 2px; background-color: #e5e7eb; z-index: 0; }
         .last-item .timeline-line { display: none; }
     </style>
@@ -98,9 +97,169 @@
                                 ) : "Log In"}
                             </button>
                         </form>
-                        <div className="mt-6 text-center text-xs text-gray-400">
-                            Secure Access • ISO 21001 Compliant
+                    </div>
+                </div>
+            );
+        }
+
+        // --- NEW: PROFILE VIEW ---
+        function ProfileView({ student, enrollment }) {
+            return (
+                <div className="p-6 fade-in max-w-4xl mx-auto">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Student Profile</h2>
+                    
+                    <div className="odoo-card overflow-hidden">
+                        <div className="bg-purple-700 h-32 relative">
+                            <div className="absolute -bottom-10 left-8">
+                                <div className="w-24 h-24 rounded-full bg-white p-1 shadow-md">
+                                    <div className="w-full h-full rounded-full bg-purple-200 flex items-center justify-center text-3xl font-bold text-purple-700">
+                                        {student.FullName.charAt(0)}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        <div className="pt-12 px-8 pb-8">
+                            <h3 className="text-2xl font-bold text-gray-800">{student.FullName}</h3>
+                            <p className="text-gray-500">{student.Designation} at {student.Company}</p>
+                            
+                            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Contact Information</h4>
+                                    <div className="space-y-3">
+                                        <div className="flex items-start">
+                                            <i className="fas fa-envelope text-gray-400 w-6 mt-1"></i>
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-700">Email</p>
+                                                <p className="text-sm text-gray-600">{student.Email}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <i className="fas fa-phone text-gray-400 w-6 mt-1"></i>
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-700">Phone</p>
+                                                <p className="text-sm text-gray-600">{student.Phone}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <i className="fas fa-map-marker-alt text-gray-400 w-6 mt-1"></i>
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-700">Address</p>
+                                                <p className="text-sm text-gray-600">
+                                                    {student.Address}, {student.City}<br/>
+                                                    {student.State}, {student.Country} - {student.Pincode}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Academic Details</h4>
+                                    <div className="space-y-3">
+                                        <div className="flex items-start">
+                                            <i className="fas fa-graduation-cap text-gray-400 w-6 mt-1"></i>
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-700">Program ID</p>
+                                                <p className="text-sm text-gray-600">{enrollment.ProgramID}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <i className="fas fa-calendar-alt text-gray-400 w-6 mt-1"></i>
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-700">Enrolled On</p>
+                                                <p className="text-sm text-gray-600">{new Date(enrollment.EnrollmentDate).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start">
+                                            <i className="fas fa-id-badge text-gray-400 w-6 mt-1"></i>
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-700">Track</p>
+                                                <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">{enrollment.Track}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- NEW: GRADES VIEW ---
+        function GradesView({ assignments, courses }) {
+            // Map Assignment ModuleID (LessonID) to Lesson Name using Courses data
+            const getLessonTitle = (moduleId) => {
+                for (let c of courses) {
+                    if (c.lessons) {
+                        const found = c.lessons.find(l => l.LessonID === moduleId);
+                        if (found) return found.LessonTitle;
+                    }
+                }
+                return moduleId; // Fallback
+            };
+
+            const getCourseName = (moduleId) => {
+                 for (let c of courses) {
+                    if (c.lessons) {
+                        const found = c.lessons.find(l => l.LessonID === moduleId);
+                        if (found) return c.CourseName;
+                    }
+                }
+                return "Unknown Course";
+            };
+
+            return (
+                <div className="p-6 fade-in max-w-6xl mx-auto">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">My Grades</h2>
+                    <p className="text-gray-500 mb-6">Review feedback and scores for your submissions.</p>
+
+                    <div className="odoo-card overflow-hidden">
+                        <table className="min-w-full text-left text-sm">
+                            <thead className="bg-gray-50 border-b">
+                                <tr>
+                                    <th className="px-6 py-4 font-bold text-gray-700">Assignment / Module</th>
+                                    <th className="px-6 py-4 font-bold text-gray-700">Submitted On</th>
+                                    <th className="px-6 py-4 font-bold text-gray-700">Status</th>
+                                    <th className="px-6 py-4 font-bold text-gray-700">Grade</th>
+                                    <th className="px-6 py-4 font-bold text-gray-700">Feedback</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {(!assignments || assignments.length === 0) ? (
+                                    <tr>
+                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-500 italic">
+                                            No graded assignments yet. Submissions will appear here.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    assignments.map((asn, idx) => (
+                                        <tr key={idx} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-gray-800">{getLessonTitle(asn.ModuleID)}</div>
+                                                <div className="text-xs text-gray-500">{getCourseName(asn.ModuleID)}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600">
+                                                {new Date(asn.SubmittedAt).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {asn.Grade ? (
+                                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold">Graded</span>
+                                                ) : (
+                                                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-bold">Pending</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 font-mono font-bold text-gray-700">
+                                                {asn.Grade ? `${asn.Grade} / ${asn.MaxGrade}` : "-"}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-500 italic">
+                                                {asn.Feedback || "No feedback yet."}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             );
@@ -115,9 +274,7 @@
             const totalLessons = courses.reduce((acc, c) => acc + (c.lessons ? c.lessons.length : 0), 0);
             const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
-            // Filter active courses (courses belonging to the current term or previously active)
             const activeCourses = courses.filter(c => {
-                 // Assuming backend returns Term info in lessons, we approximate Course Term based on first lesson
                  const courseTerm = c.lessons && c.lessons.length > 0 ? c.lessons[0].Term : 1;
                  return courseTerm <= academicStatus.currentTerm;
             });
@@ -134,7 +291,6 @@
                         </span>
                     </div>
 
-                    {/* Stats Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                         <div className="odoo-card p-5 border-l-4 border-purple-600">
                             <div className="text-gray-500 text-xs uppercase font-bold tracking-wider mb-1">Current Term</div>
@@ -208,11 +364,9 @@
             );
         }
 
-        // --- NEW: COURSES FLOW VIEW ---
         function CoursesList({ courses, onNavigate }) {
-            // Group courses by Term
             const groupedCourses = useMemo(() => {
-                const groups = { 1: [], 2: [], 3: [] }; // Assuming 3 terms
+                const groups = { 1: [], 2: [], 3: [] }; 
                 courses.forEach(course => {
                     const term = course.lessons && course.lessons.length > 0 ? parseInt(course.lessons[0].Term) : 1;
                     if (!groups[term]) groups[term] = [];
@@ -241,7 +395,6 @@
                                     </div>
                                 </div>
                                 
-                                {/* Connecting Line */}
                                 {termId < 3 && <div className="absolute left-5 top-10 bottom-[-40px] w-0.5 bg-gray-200"></div>}
 
                                 <div className="ml-14 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -279,9 +432,7 @@
             );
         }
 
-        // --- NEW: ASSIGNMENTS CENTER ---
         function AssignmentsView({ courses, onNavigate }) {
-            // Flatten all lessons that are unlocked
             const assignments = useMemo(() => {
                 let all = [];
                 courses.forEach(c => {
@@ -309,7 +460,6 @@
                     <p className="text-gray-500 mb-6">Manage your workbooks and submissions.</p>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* PENDING COLUMN */}
                         <div className="lg:col-span-2 space-y-6">
                             <h3 className="font-bold text-gray-700 border-b pb-2">
                                 <i className="fas fa-clock text-orange-500 mr-2"></i> Pending Submission ({pending.length})
@@ -343,7 +493,6 @@
                             )}
                         </div>
 
-                        {/* COMPLETED COLUMN */}
                         <div>
                             <h3 className="font-bold text-gray-700 border-b pb-2 mb-4">
                                 <i className="fas fa-history text-gray-400 mr-2"></i> History ({completed.length})
@@ -402,16 +551,13 @@
                              const isLast = idx === course.lessons.length - 1;
                              return (
                                 <div key={lesson.LessonID} className={`relative pl-12 pb-8 ${isLast ? 'last-item' : ''}`}>
-                                    {/* Timeline Line */}
                                     <div className="timeline-line"></div>
                                     
-                                    {/* Timeline Dot */}
                                     <div className={`absolute left-0 top-0 w-12 h-12 rounded-full border-4 border-f6f7fa z-10 flex items-center justify-center shadow-sm
                                         ${lesson.isLocked ? 'bg-gray-200 text-gray-400' : (lesson.isCompleted ? 'bg-green-500 text-white' : 'bg-white text-purple-600 border-purple-100')}`}>
                                         <i className={`fas ${lesson.isLocked ? 'fa-lock' : (lesson.isCompleted ? 'fa-check' : 'fa-play')} text-sm`}></i>
                                     </div>
 
-                                    {/* Card */}
                                     <div className={`odoo-card p-5 ml-4 transition-all ${lesson.isLocked ? 'bg-gray-50 opacity-70' : 'bg-white hover:border-purple-300 hover:shadow-md'}`}>
                                         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                                             <div>
@@ -476,11 +622,10 @@
                             <i className="fas fa-arrow-left mr-2"></i> Back
                         </button>
                         <h2 className="font-bold text-lg truncate max-w-xl hidden md:block">{lesson.LessonTitle}</h2>
-                        <div className="w-20"></div> {/* Spacer */}
+                        <div className="w-20"></div> 
                     </div>
                     
                     <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-                        {/* Content Area */}
                         <div className="flex-1 overflow-y-auto bg-gray-100 flex flex-col items-center p-4 md:p-8">
                             <div className="w-full max-w-4xl bg-black rounded-lg shadow-2xl overflow-hidden aspect-video relative flex items-center justify-center">
                                 {lesson.ContentURL && lesson.ContentURL.includes('youtube') ? (
@@ -506,7 +651,6 @@
                             </div>
                         </div>
 
-                        {/* Sidebar: Assignment & Resources */}
                         <div className="w-full md:w-96 bg-white border-l overflow-y-auto p-6 shadow-xl z-10">
                             <div className="mb-8">
                                 <h3 className="font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
@@ -670,7 +814,17 @@
                                 l.LessonID === lessonId ? { ...l, isCompleted: true } : l
                              )
                          }));
-                         setStudentData({ ...studentData, courses: updatedCourses });
+                         // Optimistically add to assignment history as "Pending Grade"
+                         const newAssignment = {
+                             ModuleID: lessonId,
+                             SubmittedAt: new Date().toISOString(),
+                             Grade: null,
+                             MaxGrade: 100,
+                             Status: "Submitted"
+                         };
+                         const updatedHistory = [...(studentData.assignmentHistory || []), newAssignment];
+                         
+                         setStudentData({ ...studentData, courses: updatedCourses, assignmentHistory: updatedHistory });
                     }
 
                     return result;
@@ -692,11 +846,7 @@
                 setView(targetView);
                 if (courseData) setSelectedCourse(courseData);
                 if (lessonData) {
-                    // When navigating directly to a lesson (e.g., from assignments),
-                    // we might need to set the selected course too for the "Back" button to work
                     if(!courseData && studentData) {
-                         // Find the course this lesson belongs to
-                         // Note: We used CourseName in the assignment object
                          const parentCourse = studentData.courses.find(c => c.CourseName === lessonData.CourseName);
                          if(parentCourse) setSelectedCourse(parentCourse);
                     }
@@ -707,7 +857,6 @@
             // RENDER LOGIC
             if (!user) return <Login onLogin={handleLogin} loading={loading} />;
             
-            // Loading State
             if (loading && !studentData && !error) return (
                 <div className="h-screen flex items-center justify-center flex-col bg-gray-50">
                     <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
@@ -715,7 +864,6 @@
                 </div>
             );
 
-            // Error State (Crash Prevention)
             if (error && !studentData) return (
                 <div className="h-screen flex items-center justify-center flex-col bg-gray-50 p-6">
                     <div className="bg-white p-8 rounded shadow-md max-w-md text-center border-t-4 border-red-500">
@@ -734,10 +882,8 @@
                 </div>
             );
 
-            // Main App Layout
             return (
                 <div className="flex h-screen overflow-hidden bg-gray-50">
-                    {/* Desktop Sidebar */}
                     <div className="w-64 odoo-sidebar flex-shrink-0 hidden md:flex flex-col z-20 shadow-sm">
                         <div className="h-16 flex items-center px-6 border-b bg-white">
                             <span className="font-bold text-xl text-purple-800 tracking-tight">RaveOne</span>
@@ -753,10 +899,10 @@
                                 <div onClick={() => onNavigate('assignments')} className={`sidebar-item flex items-center px-6 py-3 text-gray-600 ${view === 'assignments' ? 'active' : ''}`}>
                                     <i className="fas fa-tasks w-6 text-center"></i> <span className="ml-2">Assignments</span>
                                 </div>
-                                <div className="sidebar-item flex items-center px-6 py-3 text-gray-600">
+                                <div onClick={() => onNavigate('grades')} className={`sidebar-item flex items-center px-6 py-3 text-gray-600 ${view === 'grades' ? 'active' : ''}`}>
                                     <i className="fas fa-award w-6 text-center"></i> <span className="ml-2">My Grades</span>
                                 </div>
-                                <div className="sidebar-item flex items-center px-6 py-3 text-gray-600">
+                                <div onClick={() => onNavigate('profile')} className={`sidebar-item flex items-center px-6 py-3 text-gray-600 ${view === 'profile' ? 'active' : ''}`}>
                                     <i className="fas fa-user w-6 text-center"></i> <span className="ml-2">Profile</span>
                                 </div>
                             </nav>
@@ -777,9 +923,7 @@
                         </div>
                     </div>
 
-                    {/* Main Content Area */}
                     <div className="flex-1 flex flex-col overflow-hidden relative">
-                        {/* Mobile Header */}
                         <div className="md:hidden h-16 bg-white border-b flex items-center justify-between px-4 shadow-sm z-20">
                              <span className="font-bold text-xl text-purple-800">RaveOne</span>
                              <div className="flex items-center">
@@ -792,6 +936,8 @@
                             {view === 'dashboard' && <Dashboard data={studentData} onNavigate={onNavigate} />}
                             {view === 'courses' && <CoursesList courses={studentData.courses} onNavigate={onNavigate} />}
                             {view === 'assignments' && <AssignmentsView courses={studentData.courses} onNavigate={onNavigate} />}
+                            {view === 'grades' && <GradesView assignments={studentData.assignmentHistory} courses={studentData.courses} />}
+                            {view === 'profile' && <ProfileView student={studentData.student} enrollment={studentData.enrollment} />}
                             {view === 'course' && <CourseDetail course={selectedCourse} onBack={() => setView('courses')} onSelectLesson={(l) => onNavigate('lesson', selectedCourse, l)} />}
                             {view === 'lesson' && <LessonPlayer lesson={selectedLesson} user={user} onBack={() => setView('course')} onSubmitAssignment={handleSubmitAssignment} />}
                         </div>
