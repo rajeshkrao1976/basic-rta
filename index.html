@@ -103,45 +103,40 @@
         }
 
         // --- NEW: CONTENT VIEWER ---
-        function ContentViewer({ lesson }) {
-            const { ContentType, ContentURL } = lesson;
-            
+        function ContentViewer({ url, type }) {
             // Normalize type
-            const type = (ContentType || "").toLowerCase();
-            const url = ContentURL;
+            const contentType = (type || "").toLowerCase();
+            const cleanUrl = url.trim();
 
-            if (!url) return (
-                <div className="text-center p-10 bg-gray-100 rounded">
-                    <i className="fas fa-exclamation-circle fa-2x text-gray-400 mb-2"></i>
-                    <p className="text-gray-500">No content available for this module.</p>
-                </div>
-            );
+            if (!cleanUrl) return null;
 
             // 1. YouTube
-            if (url.includes('youtube.com') || url.includes('youtu.be')) {
-                const embedUrl = url.replace("watch?v=", "embed/").replace("youtu.be/", "www.youtube.com/embed/");
+            if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) {
+                const embedUrl = cleanUrl.replace("watch?v=", "embed/").replace("youtu.be/", "www.youtube.com/embed/");
                 return (
-                    <div className="aspect-w-16 aspect-h-9 w-full h-96">
+                    <div className="aspect-w-16 aspect-h-9 w-full h-96 mb-6">
                         <iframe src={embedUrl} className="w-full h-full border-0 rounded" allowFullScreen></iframe>
                     </div>
                 );
             }
 
             // 2. Direct Video
-            if (type.includes('video') || url.endsWith('.mp4')) {
+            if (contentType.includes('video') || cleanUrl.endsWith('.mp4')) {
                 return (
-                    <video controls className="w-full h-auto rounded shadow-lg max-h-96 bg-black">
-                        <source src={url} type="video/mp4" />
-                        Your browser does not support the video tag.
-                    </video>
+                    <div className="mb-6">
+                        <video controls className="w-full h-auto rounded shadow-lg max-h-96 bg-black">
+                            <source src={cleanUrl} type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
                 );
             }
 
             // 3. Documents (PDF, PPT, DOC, XLS) - Use Google Docs Viewer
-            if (type.includes('pdf') || type.includes('ppt') || type.includes('doc') || type.includes('xls') || url.endsWith('.pdf') || url.endsWith('.docx') || url.endsWith('.xlsx')) {
-                const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+            if (contentType.includes('pdf') || contentType.includes('ppt') || contentType.includes('doc') || contentType.includes('xls') || cleanUrl.endsWith('.pdf') || cleanUrl.endsWith('.docx') || cleanUrl.endsWith('.xlsx')) {
+                const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(cleanUrl)}&embedded=true`;
                 return (
-                    <div className="w-full h-[600px] bg-gray-100 rounded border">
+                    <div className="w-full h-[600px] bg-gray-100 rounded border mb-6">
                         <iframe src={viewerUrl} className="w-full h-full border-0"></iframe>
                     </div>
                 );
@@ -149,19 +144,76 @@
 
             // 4. Fallback: External Link
             return (
-                <div className="text-center p-10 bg-white border border-dashed rounded">
-                    <i className="fas fa-external-link-alt fa-3x text-blue-500 mb-4"></i>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">External Content</h3>
-                    <p className="text-gray-500 mb-6">This content is hosted externally.</p>
-                    <a href={url} target="_blank" className="odoo-btn-primary px-8 py-3 rounded font-bold inline-block hover:shadow-lg transition">
-                        Open Learning Material
+                <div className="text-center p-6 bg-white border border-dashed rounded mb-6">
+                    <i className="fas fa-external-link-alt fa-2x text-blue-500 mb-2"></i>
+                    <h3 className="text-md font-bold text-gray-800 mb-1">External Resource</h3>
+                    <a href={cleanUrl} target="_blank" className="text-purple-600 hover:underline text-sm font-bold">
+                        Open Link in New Tab <i className="fas fa-arrow-up-right-from-square ml-1"></i>
                     </a>
                 </div>
             );
         }
 
-        function LessonPlayer({ lesson, user, course, onBack, onSubmitAssignment }) {
-            const [activeTab, setActiveTab] = useState("link"); // "link" or "upload"
+        function LessonPlayer({ lesson, user, course, onBack, onNavigateToAssignments }) {
+            const materials = lesson.materials && lesson.materials.length > 0 ? lesson.materials : (lesson.ContentURL ? [lesson.ContentURL] : []);
+
+            return (
+                <div className="flex flex-col h-full bg-white">
+                    {/* Header with Breadcrumbs */}
+                    <div className="border-b px-6 py-4 flex flex-col md:flex-row md:items-center justify-between bg-white shadow-sm z-10">
+                        <div>
+                             <div className="text-xs text-gray-500 mb-1 flex items-center">
+                                <span className="hover:text-purple-600 cursor-pointer" onClick={onBack}>Courses</span>
+                                <i className="fas fa-chevron-right text-[10px] mx-2"></i>
+                                <span>{course?.CourseName || "Course"}</span>
+                                <i className="fas fa-chevron-right text-[10px] mx-2"></i>
+                                <span className="font-bold text-gray-700">Module {lesson.Week}</span>
+                             </div>
+                             <h2 className="font-bold text-xl text-gray-800">{lesson.LessonTitle}</h2>
+                        </div>
+                        <div className="flex gap-2 mt-2 md:mt-0">
+                            <button onClick={() => onNavigateToAssignments(lesson)} className="odoo-btn-primary px-4 py-1.5 rounded text-sm font-bold shadow-sm">
+                                <i className="fas fa-upload mr-2"></i> Submit Assignment
+                            </button>
+                            <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm font-medium flex items-center bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200 transition">
+                                <i className="fas fa-times mr-2"></i> Close
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8">
+                        <div className="max-w-5xl mx-auto">
+                            {materials.length === 0 ? (
+                                <div className="text-center p-10 bg-white rounded shadow-sm">
+                                    <p className="text-gray-500">No content available for this module.</p>
+                                </div>
+                            ) : (
+                                materials.map((url, idx) => (
+                                    <div key={idx} className="bg-white rounded shadow-sm border p-1 mb-8">
+                                        <div className="px-4 py-2 border-b bg-gray-50 text-xs font-bold text-gray-500 uppercase">
+                                            Material Part {idx + 1}
+                                        </div>
+                                        <ContentViewer url={url} type={lesson.ContentType} />
+                                    </div>
+                                ))
+                            )}
+                            
+                            <div className="mt-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                                <h3 className="font-bold text-lg text-blue-800 mb-1">Module Instructions</h3>
+                                <p className="text-blue-700 text-sm">
+                                    Please review all materials above. When you are ready to submit your workbook or assignment for this module, click the 
+                                    <strong> "Submit Assignment"</strong> button at the top right to go to the submission center.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- NEW: SUBMISSION FORM COMPONENT (Reused in Assignments Tab) ---
+        function SubmissionForm({ lesson, onSubmit, onCancel }) {
+            const [activeTab, setActiveTab] = useState("link"); 
             const [assignmentLink, setAssignmentLink] = useState("");
             const [file, setFile] = useState(null);
             const [submitting, setSubmitting] = useState(false);
@@ -188,7 +240,6 @@
                 if (activeTab === "link") {
                     submissionData.link = assignmentLink;
                 } else if (activeTab === "upload" && file) {
-                    // Convert file to base64
                     try {
                         const base64 = await new Promise((resolve) => {
                             const reader = new FileReader();
@@ -209,118 +260,139 @@
                     return;
                 }
 
-                const result = await onSubmitAssignment(submissionData);
+                const result = await onSubmit(submissionData);
                 
                 setSubmitting(false);
                 if (result && result.success) {
                     setMessage("Assignment submitted successfully!");
                     setAssignmentLink("");
                     setFile(null);
+                    setTimeout(() => onCancel(), 1500); // Close after success
                 } else {
                     setErrorMsg("Submission failed. " + (result.error || ""));
                 }
             };
 
             return (
-                <div className="flex flex-col h-full bg-white">
-                    {/* Header with Breadcrumbs */}
-                    <div className="border-b px-6 py-4 flex flex-col md:flex-row md:items-center justify-between bg-white shadow-sm z-10">
-                        <div>
-                             <div className="text-xs text-gray-500 mb-1 flex items-center">
-                                <span className="hover:text-purple-600 cursor-pointer" onClick={onBack}>Courses</span>
-                                <i className="fas fa-chevron-right text-[10px] mx-2"></i>
-                                <span>{course?.CourseName || "Course"}</span>
-                                <i className="fas fa-chevron-right text-[10px] mx-2"></i>
-                                <span className="font-bold text-gray-700">Module {lesson.Week}</span>
-                             </div>
-                             <h2 className="font-bold text-xl text-gray-800">{lesson.LessonTitle}</h2>
-                        </div>
-                        <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm font-medium flex items-center mt-2 md:mt-0 bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200 transition">
-                            <i className="fas fa-times mr-2"></i> Close
-                        </button>
+                <div className="bg-white border rounded-lg shadow-sm p-6 mt-4">
+                    <h4 className="font-bold text-gray-800 mb-4">Submit for: {lesson.LessonTitle}</h4>
+                    <div className="flex mb-4 bg-gray-100 p-1 rounded">
+                        <button onClick={() => setActiveTab("link")} className={`flex-1 py-1.5 text-sm font-bold rounded ${activeTab === 'link' ? 'bg-white shadow text-purple-700' : 'text-gray-500 hover:text-gray-700'}`}>Link</button>
+                        <button onClick={() => setActiveTab("upload")} className={`flex-1 py-1.5 text-sm font-bold rounded ${activeTab === 'upload' ? 'bg-white shadow text-purple-700' : 'text-gray-500 hover:text-gray-700'}`}>File Upload</button>
                     </div>
-                    
-                    <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-                        {/* Content Area */}
-                        <div className="flex-1 overflow-y-auto bg-gray-50 flex flex-col p-4 md:p-8">
-                            <div className="bg-white rounded shadow-sm border p-1">
-                                <ContentViewer lesson={lesson} />
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {activeTab === 'link' ? (
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">URL</label>
+                                <input type="url" placeholder="https://..." className="w-full border border-gray-300 rounded px-3 py-2 text-sm" value={assignmentLink} onChange={(e) => setAssignmentLink(e.target.value)} required />
                             </div>
-                            <div className="mt-6">
-                                <h3 className="font-bold text-lg text-gray-800 mb-2">Description</h3>
-                                <p className="text-gray-600">Please review the material above entirely. If this module includes an assignment, submit it using the panel on the right.</p>
+                        ) : (
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Select File</label>
+                                <input type="file" className="w-full text-sm text-gray-500" onChange={handleFileChange} required />
                             </div>
+                        )}
+
+                        <div className="flex gap-2">
+                            <button type="submit" disabled={submitting} className={`flex-1 py-2 rounded text-sm font-bold text-white shadow-md ${submitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}>
+                                {submitting ? 'Submitting...' : 'Submit'}
+                            </button>
+                            <button type="button" onClick={onCancel} className="px-4 py-2 border rounded text-sm font-bold text-gray-600 hover:bg-gray-100">Cancel</button>
+                        </div>
+                        {message && <div className="text-green-600 text-xs mt-2">{message}</div>}
+                        {errorMsg && <div className="text-red-600 text-xs mt-2">{errorMsg}</div>}
+                    </form>
+                </div>
+            );
+        }
+
+        // --- NEW: ASSIGNMENTS VIEW WITH SUBMISSION LOGIC ---
+        function AssignmentsView({ courses, onNavigate, onSubmitAssignment, highlightLesson }) {
+            const [selectedForSubmission, setSelectedForSubmission] = useState(highlightLesson || null);
+
+            const assignments = useMemo(() => {
+                let all = [];
+                courses.forEach(c => {
+                    if (c.lessons) {
+                        c.lessons.forEach(l => {
+                            if (!l.isLocked) {
+                                all.push({ ...l, CourseName: c.CourseName, CourseCode: c.Code });
+                            }
+                        });
+                    }
+                });
+                return all.sort((a, b) => (a.isCompleted === b.isCompleted) ? 0 : a.isCompleted ? 1 : -1);
+            }, [courses]);
+
+            const pending = assignments.filter(a => !a.isCompleted);
+            const completed = assignments.filter(a => a.isCompleted);
+
+            return (
+                <div className="p-6 fade-in max-w-6xl mx-auto">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Assignments Center</h2>
+                    <p className="text-gray-500 mb-6">Manage your workbooks and submissions.</p>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2 space-y-6">
+                            <h3 className="font-bold text-gray-700 border-b pb-2">
+                                <i className="fas fa-clock text-orange-500 mr-2"></i> Pending Submission ({pending.length})
+                            </h3>
+                            
+                            {pending.length === 0 ? (
+                                <div className="text-center p-8 bg-white border border-dashed rounded text-gray-400">
+                                    <p>All caught up! No pending assignments.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {pending.map((a, idx) => (
+                                        <div key={idx} className={`bg-white border-l-4 ${selectedForSubmission?.LessonID === a.LessonID ? 'border-purple-600 ring-2 ring-purple-100' : 'border-orange-400'} p-4 rounded shadow-sm`}>
+                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+                                                <div className="mb-3 md:mb-0">
+                                                    <div className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">
+                                                        {a.CourseCode} • Term {a.Term} Week {a.Week}
+                                                    </div>
+                                                    <h4 className="font-bold text-gray-800">{a.LessonTitle}</h4>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => onNavigate('lesson', null, a)} className="px-3 py-1.5 border border-gray-300 text-gray-600 text-xs font-bold rounded hover:bg-gray-50">
+                                                        View Lesson
+                                                    </button>
+                                                    <button onClick={() => setSelectedForSubmission(selectedForSubmission?.LessonID === a.LessonID ? null : a)} className="px-4 py-1.5 bg-orange-50 text-orange-700 text-xs font-bold rounded hover:bg-orange-100">
+                                                        {selectedForSubmission?.LessonID === a.LessonID ? 'Close' : 'Submit Here'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            {selectedForSubmission?.LessonID === a.LessonID && (
+                                                <SubmissionForm 
+                                                    lesson={a} 
+                                                    onSubmit={onSubmitAssignment} 
+                                                    onCancel={() => setSelectedForSubmission(null)} 
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
-                        {/* Sidebar: Assignment & Resources */}
-                        <div className="w-full lg:w-96 bg-white border-l overflow-y-auto p-6 shadow-xl z-10">
-                            <div className="mb-8">
-                                <h3 className="font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
-                                    <i className="fas fa-cloud-upload-alt mr-2 text-purple-600"></i> Submission
-                                </h3>
-                                
-                                <div className="flex mb-4 bg-gray-100 p-1 rounded">
-                                    <button 
-                                        onClick={() => setActiveTab("link")}
-                                        className={`flex-1 py-1.5 text-sm font-bold rounded ${activeTab === 'link' ? 'bg-white shadow text-purple-700' : 'text-gray-500 hover:text-gray-700'}`}
-                                    >
-                                        Link
-                                    </button>
-                                    <button 
-                                        onClick={() => setActiveTab("upload")}
-                                        className={`flex-1 py-1.5 text-sm font-bold rounded ${activeTab === 'upload' ? 'bg-white shadow text-purple-700' : 'text-gray-500 hover:text-gray-700'}`}
-                                    >
-                                        File Upload
-                                    </button>
-                                </div>
-
-                                <div className="bg-blue-50 border border-blue-100 p-3 rounded text-xs text-blue-800 mb-4">
-                                    {activeTab === 'link' ? 
-                                        "Paste a Google Drive, Dropbox, or external link." : 
-                                        "Upload PDF, DOCX, or XLSX. Max 10MB."}
-                                </div>
-
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    {activeTab === 'link' ? (
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">URL</label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                    <i className="fas fa-link text-gray-400"></i>
-                                                </div>
-                                                <input 
-                                                    type="url" 
-                                                    placeholder="https://..."
-                                                    className="w-full border border-gray-300 rounded pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
-                                                    value={assignmentLink}
-                                                    onChange={(e) => setAssignmentLink(e.target.value)}
-                                                    required
-                                                />
+                        <div>
+                            <h3 className="font-bold text-gray-700 border-b pb-2 mb-4">
+                                <i className="fas fa-history text-gray-400 mr-2"></i> History ({completed.length})
+                            </h3>
+                            <div className="bg-white rounded border border-gray-200 overflow-hidden">
+                                <ul className="divide-y divide-gray-100">
+                                    {completed.map((a, idx) => (
+                                        <li key={idx} className="p-3 hover:bg-gray-50 transition flex items-center">
+                                            <i className="fas fa-check text-green-500 mr-3 text-sm"></i>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-gray-800 truncate">{a.LessonTitle}</p>
+                                                <p className="text-xs text-gray-400">{a.CourseName}</p>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Select File</label>
-                                            <input 
-                                                type="file" 
-                                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-                                                onChange={handleFileChange}
-                                                required
-                                            />
-                                        </div>
-                                    )}
-
-                                    <button 
-                                        type="submit" 
-                                        disabled={submitting}
-                                        className={`w-full py-2.5 rounded text-sm font-bold text-white shadow-md transition-all ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 transform hover:-translate-y-0.5'}`}
-                                    >
-                                        {submitting ? 'Submitting...' : 'Submit Assignment'}
-                                    </button>
-                                    
-                                    {message && <div className="p-3 bg-green-50 text-green-700 text-xs rounded border border-green-200 flex items-center animate-pulse"><i className="fas fa-check-circle mr-2"></i> {message}</div>}
-                                    {errorMsg && <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200 flex items-center"><i className="fas fa-exclamation-circle mr-2"></i> {errorMsg}</div>}
-                                </form>
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -655,95 +727,6 @@
             );
         }
 
-        function AssignmentsView({ courses, onNavigate }) {
-            const safeCourses = courses || [];
-            const assignments = useMemo(() => {
-                let all = [];
-                safeCourses.forEach(c => {
-                    if (c.lessons) {
-                        c.lessons.forEach(l => {
-                            if (!l.isLocked) {
-                                all.push({
-                                    ...l,
-                                    CourseName: c.CourseName,
-                                    CourseCode: c.Code
-                                });
-                            }
-                        });
-                    }
-                });
-                return all.sort((a, b) => (a.isCompleted === b.isCompleted) ? 0 : a.isCompleted ? 1 : -1);
-            }, [safeCourses]);
-
-            const pending = assignments.filter(a => !a.isCompleted);
-            const completed = assignments.filter(a => a.isCompleted);
-
-            return (
-                <div className="p-6 fade-in max-w-6xl mx-auto">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Assignments Center</h2>
-                    <p className="text-gray-500 mb-6">Manage your workbooks and submissions.</p>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-6">
-                            <h3 className="font-bold text-gray-700 border-b pb-2">
-                                <i className="fas fa-clock text-orange-500 mr-2"></i> Pending Submission ({pending.length})
-                            </h3>
-                            
-                            {pending.length === 0 ? (
-                                <div className="text-center p-8 bg-white border border-dashed rounded text-gray-400">
-                                    <i className="fas fa-check-circle text-4xl mb-3 text-green-100"></i>
-                                    <p>All caught up! No pending assignments.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {pending.map((a, idx) => (
-                                        <div key={idx} className="bg-white border-l-4 border-orange-400 p-4 rounded shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
-                                            <div className="mb-3 md:mb-0">
-                                                <div className="text-xs text-gray-500 uppercase font-bold tracking-wide mb-1">
-                                                    {a.CourseCode} • Term {a.Term} Week {a.Week}
-                                                </div>
-                                                <h4 className="font-bold text-gray-800">{a.LessonTitle}</h4>
-                                                <p className="text-sm text-gray-500">Workbook submission required</p>
-                                            </div>
-                                            <button 
-                                                onClick={() => onNavigate('lesson', null, a)}
-                                                className="px-4 py-2 bg-orange-50 text-orange-700 text-sm font-bold rounded hover:bg-orange-100 whitespace-nowrap"
-                                            >
-                                                Open Workbook
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div>
-                            <h3 className="font-bold text-gray-700 border-b pb-2 mb-4">
-                                <i className="fas fa-history text-gray-400 mr-2"></i> History ({completed.length})
-                            </h3>
-                            <div className="bg-white rounded border border-gray-200 overflow-hidden">
-                                {completed.length === 0 ? (
-                                    <div className="p-4 text-center text-sm text-gray-400">No submissions yet.</div>
-                                ) : (
-                                    <ul className="divide-y divide-gray-100">
-                                        {completed.map((a, idx) => (
-                                            <li key={idx} className="p-3 hover:bg-gray-50 transition flex items-center">
-                                                <i className="fas fa-check text-green-500 mr-3 text-sm"></i>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-800 truncate">{a.LessonTitle}</p>
-                                                    <p className="text-xs text-gray-400">{a.CourseName}</p>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
         // --- COURSE DETAIL (Updated Icons) ---
         function CourseDetail({ course, onBack, onSelectLesson }) {
             const getIcon = (type) => {
@@ -818,6 +801,7 @@
             const [view, setView] = useState("dashboard"); 
             const [selectedCourse, setSelectedCourse] = useState(null);
             const [selectedLesson, setSelectedLesson] = useState(null);
+            const [selectedAssignmentLesson, setSelectedAssignmentLesson] = useState(null); // New state to pass to assignment view
             const [loading, setLoading] = useState(false);
             const [error, setError] = useState(null);
 
@@ -923,6 +907,11 @@
                 }
             };
 
+            const onNavigateToAssignments = (lesson) => {
+                setSelectedAssignmentLesson(lesson);
+                setView('assignments');
+            }
+
             if (!user) return <Login onLogin={handleLogin} loading={loading} />;
             if (loading && !studentData) return <div className="h-screen flex items-center justify-center"><div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>;
 
@@ -950,22 +939,14 @@
                         </div>
                     </div>
                     <div className="flex-1 flex flex-col overflow-hidden relative">
-                        <div className="md:hidden h-16 bg-white border-b flex items-center justify-between px-4 shadow-sm z-20">
-                             <span className="font-bold text-xl text-purple-800">RaveOne</span>
-                             <div className="flex items-center">
-                                 <span className="text-sm font-bold mr-3 text-gray-700">{user.name.split(' ')[0]}</span>
-                                 <button onClick={handleLogout} className="text-gray-400 hover:text-red-500"><i className="fas fa-sign-out-alt text-lg"></i></button>
-                             </div>
-                        </div>
-
                         <div className="flex-1 overflow-y-auto bg-gray-50/50">
                             {view === 'dashboard' && <Dashboard data={studentData} onNavigate={onNavigate} />}
                             {view === 'courses' && <CoursesList courses={studentData.courses} onNavigate={onNavigate} />}
-                            {view === 'assignments' && <AssignmentsView courses={studentData.courses} onNavigate={onNavigate} />}
+                            {view === 'assignments' && <AssignmentsView courses={studentData.courses} onNavigate={onNavigate} onSubmitAssignment={handleSubmitAssignment} highlightLesson={selectedAssignmentLesson} />}
                             {view === 'grades' && <GradesView assignments={studentData.assignmentHistory} courses={studentData.courses} />}
                             {view === 'profile' && <ProfileView student={studentData.student} enrollment={studentData.enrollment} />}
                             {view === 'course' && <CourseDetail course={selectedCourse} onBack={() => setView('courses')} onSelectLesson={(l) => onNavigate('lesson', selectedCourse, l)} />}
-                            {view === 'lesson' && <LessonPlayer lesson={selectedLesson} user={user} course={selectedCourse} onBack={() => setView('course')} onSubmitAssignment={handleSubmitAssignment} />}
+                            {view === 'lesson' && <LessonPlayer lesson={selectedLesson} user={user} course={selectedCourse} onBack={() => setView('course')} onNavigateToAssignments={onNavigateToAssignments} />}
                         </div>
                     </div>
                 </div>
