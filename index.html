@@ -4,22 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RaveOne Academy | Master LMS</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body { font-family: 'Roboto', sans-serif; background-color: #f6f7fa; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f6f7fa; color: #1f2937; }
         .odoo-nav { background-color: #714B67; color: white; } 
         .odoo-sidebar { background-color: #ffffff; border-right: 1px solid #e2e8f0; }
         .odoo-card { background: white; border: 1px solid #e2e8f0; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .odoo-btn-primary { background-color: #008784; color: white; } 
+        .odoo-btn-primary { background-color: #008784; color: white; transition: background-color 0.2s; } 
         .odoo-btn-primary:hover { background-color: #006e6b; }
-        .sidebar-item.active { background-color: #f3f4f6; border-left: 3px solid #714B67; color: #714B67; font-weight: 500; }
+        .sidebar-item.active { background-color: #f3f4f6; border-left: 3px solid #714B67; color: #714B67; font-weight: 600; }
         .loader { border-top-color: #714B67; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Fade in animation */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -27,9 +34,12 @@
 
     <script type="text/babel">
         // --- CONFIGURATION ---
+        // ⚠️ PASTE YOUR WEB APP URL INSIDE THE QUOTES BELOW ⚠️
         const API_URL = "https://script.google.com/macros/s/AKfycbwm5_1NOgnQzZyDlBJ4yxAxUal1G3CkSTCKTEzhRErIkO_OcQ6k2bzSVtH8qRaMwOm7/exec"; 
 
         const { useState, useEffect } = React;
+
+        // --- COMPONENTS ---
 
         function Login({ onLogin, loading }) {
             const [email, setEmail] = useState("");
@@ -41,18 +51,19 @@
             };
 
             return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-100">
-                    <div className="odoo-card p-8 w-full max-w-md">
+                <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+                    <div className="odoo-card p-8 w-full max-w-md shadow-lg fade-in">
                         <div className="text-center mb-8">
-                            <h1 className="text-2xl font-bold text-gray-800">RaveOne Academy</h1>
-                            <p className="text-gray-500 text-sm mt-1">SME Management & Growth</p>
+                            <h1 className="text-3xl font-bold text-gray-800 tracking-tight">RaveOne Academy</h1>
+                            <p className="text-gray-500 text-sm mt-2 font-medium">LMS Login</p>
                         </div>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
-                                <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Email Address</label>
                                 <input 
                                     type="email" 
-                                    className="w-full px-3 py-2 border rounded focus:outline-none focus:border-purple-500"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    placeholder="e.g. rajesh@raveone.in"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -62,7 +73,8 @@
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
                                 <input 
                                     type="password" 
-                                    className="w-full px-3 py-2 border rounded focus:outline-none focus:border-purple-500"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    placeholder="••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
@@ -71,123 +83,165 @@
                             <button 
                                 type="submit" 
                                 disabled={loading}
-                                className="w-full odoo-btn-primary py-2 rounded font-bold transition duration-200"
+                                className="w-full odoo-btn-primary py-3 rounded font-bold text-lg shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {loading ? "Authenticating..." : "Log In"}
+                                {loading ? (
+                                    <span className="flex items-center justify-center">
+                                        <i className="fas fa-circle-notch fa-spin mr-2"></i> Connecting...
+                                    </span>
+                                ) : "Log In"}
                             </button>
                         </form>
+                        <div className="mt-6 text-center text-xs text-gray-400">
+                            Secure Access • ISO 21001 Compliant
+                        </div>
                     </div>
                 </div>
             );
         }
 
         function Dashboard({ data, onNavigate }) {
+            // Safety check for data
+            if (!data || !data.courses) return <div className="p-6 text-red-500">Error: Data is incomplete.</div>;
+
             const { student, enrollment, academicStatus, courses } = data;
-            const completedLessons = courses.reduce((acc, c) => acc + c.lessons.filter(l => l.isCompleted).length, 0);
-            const totalLessons = courses.reduce((acc, c) => acc + c.lessons.length, 0);
-            const overallProgress = Math.round((completedLessons / totalLessons) * 100) || 0;
+            
+            // Calculate progress safely
+            const completedLessons = courses.reduce((acc, c) => acc + (c.lessons ? c.lessons.filter(l => l.isCompleted).length : 0), 0);
+            const totalLessons = courses.reduce((acc, c) => acc + (c.lessons ? c.lessons.length : 0), 0);
+            const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
             return (
-                <div className="p-6">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
-                        <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                            {enrollment.Track || "General"} Track
+                <div className="p-6 fade-in max-w-7xl mx-auto">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-800">Welcome, {student.FullName.split(' ')[0]}</h2>
+                            <p className="text-gray-500 text-sm">Here is your learning overview for today.</p>
+                        </div>
+                        <span className="bg-purple-100 text-purple-800 text-sm font-bold px-4 py-1.5 rounded-full self-start md:self-auto">
+                            <i className="fas fa-route mr-1"></i> {enrollment.Track || "General"} Track
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                        <div className="odoo-card p-4">
-                            <div className="text-gray-500 text-sm">Current Status</div>
-                            <div className="text-xl font-bold text-gray-800">
-                                {academicStatus.isBreak ? "Break Week" : `Term ${academicStatus.currentTerm}`}
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div className="odoo-card p-5 border-l-4 border-purple-600">
+                            <div className="text-gray-500 text-xs uppercase font-bold tracking-wider mb-1">Current Term</div>
+                            <div className="text-2xl font-bold text-gray-800">
+                                {academicStatus.isBreak ? "Break" : `Term ${academicStatus.currentTerm}`}
                             </div>
-                            <div className="text-xs text-gray-400">Week {academicStatus.currentWeek}</div>
+                            <div className="text-xs text-gray-400 mt-1">
+                                {academicStatus.isBreak ? "Relax & Recharge" : `Week ${academicStatus.currentWeek} of 6`}
+                            </div>
                         </div>
-                        <div className="odoo-card p-4">
-                            <div className="text-gray-500 text-sm">Program Progress</div>
-                            <div className="text-xl font-bold text-gray-800">{overallProgress}%</div>
+                        <div className="odoo-card p-5 border-l-4 border-blue-500">
+                            <div className="text-gray-500 text-xs uppercase font-bold tracking-wider mb-1">Total Progress</div>
+                            <div className="text-2xl font-bold text-gray-800">{overallProgress}%</div>
                             <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                                <div className="bg-purple-600 h-1.5 rounded-full" style={{width: `${overallProgress}%`}}></div>
+                                <div className="bg-blue-500 h-1.5 rounded-full transition-all duration-1000" style={{width: `${overallProgress}%`}}></div>
                             </div>
                         </div>
-                        <div className="odoo-card p-4">
-                            <div className="text-gray-500 text-sm">Enrollment Date</div>
-                            <div className="text-xl font-bold text-gray-800">
-                                {new Date(enrollment.EnrollmentDate).toLocaleDateString()}
+                        <div className="odoo-card p-5 border-l-4 border-green-500">
+                            <div className="text-gray-500 text-xs uppercase font-bold tracking-wider mb-1">Enrolled On</div>
+                            <div className="text-2xl font-bold text-gray-800">
+                                {new Date(enrollment.EnrollmentDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </div>
-                            <div className="text-xs text-gray-400">{academicStatus.daysEnrolled} days ago</div>
+                            <div className="text-xs text-gray-400 mt-1">{academicStatus.daysEnrolled} days ago</div>
                         </div>
-                         <div className="odoo-card p-4">
-                            <div className="text-gray-500 text-sm">Active Courses</div>
-                            <div className="text-xl font-bold text-gray-800">
+                         <div className="odoo-card p-5 border-l-4 border-orange-500">
+                            <div className="text-gray-500 text-xs uppercase font-bold tracking-wider mb-1">Active Courses</div>
+                            <div className="text-2xl font-bold text-gray-800">
                                 {courses.length}
                             </div>
-                            <div className="text-xs text-gray-400">Parallel Delivery</div>
+                            <div className="text-xs text-gray-400 mt-1">Parallel Modules</div>
                         </div>
                     </div>
 
-                    <h3 className="text-lg font-bold text-gray-800 mb-4">My Courses</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {courses.map(course => (
-                            <div key={course.CourseID} className="odoo-card p-0 flex flex-col h-full hover:shadow-md transition">
-                                <div className="p-5 flex-grow">
-                                    <div className="flex justify-between items-start">
-                                        <h4 className="font-bold text-lg text-gray-800 mb-2">{course.CourseName}</h4>
-                                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">{course.Code}</span>
+                    <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">My Active Courses</h3>
+                    {courses.length === 0 ? (
+                         <div className="text-center py-10 bg-white rounded border border-dashed border-gray-300">
+                            <p className="text-gray-500">No courses assigned yet. Contact Admin.</p>
+                         </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                            {courses.map(course => (
+                                <div key={course.CourseID} className="odoo-card flex flex-col h-full hover:shadow-lg transition-shadow duration-300 group">
+                                    <div className="p-6 flex-grow">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h4 className="font-bold text-lg text-gray-800 group-hover:text-purple-700 transition-colors">{course.CourseName}</h4>
+                                        </div>
+                                        <span className="bg-gray-100 text-gray-600 text-xs font-mono px-2 py-1 rounded mb-3 inline-block">{course.Code}</span>
+                                        <p className="text-sm text-gray-500 mb-4 line-clamp-2">{course.Description || "No description available."}</p>
+                                        
+                                        <div className="flex items-center text-sm text-gray-500 mt-auto">
+                                            <i className="fas fa-layer-group mr-2 text-purple-400"></i> {course.lessons ? course.lessons.length : 0} Learning Units
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">{course.Description}</p>
-                                    <div className="flex items-center text-sm text-gray-500">
-                                        <i className="fas fa-book-open mr-2"></i> {course.lessons.length} Lessons
+                                    <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-between items-center">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                                            {Math.round((course.lessons.filter(l => l.isCompleted).length / course.lessons.length) * 100) || 0}% Complete
+                                        </span>
+                                        <button 
+                                            onClick={() => onNavigate('course', course)}
+                                            className="text-purple-600 text-sm font-bold hover:text-purple-800 focus:outline-none flex items-center"
+                                        >
+                                            Continue <i className="fas fa-chevron-right ml-1 text-xs"></i>
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="bg-gray-50 px-5 py-3 border-t border-gray-100">
-                                    <button 
-                                        onClick={() => onNavigate('course', course)}
-                                        className="text-purple-700 text-sm font-bold hover:text-purple-900"
-                                    >
-                                        Continue Learning <i className="fas fa-arrow-right ml-1"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             );
         }
 
         function CourseView({ course, onBack, onSelectLesson }) {
             return (
-                <div className="p-6">
-                    <button onClick={onBack} className="text-gray-500 hover:text-gray-800 mb-4">
-                        <i className="fas fa-arrow-left mr-2"></i> Back to Dashboard
+                <div className="p-6 fade-in max-w-5xl mx-auto">
+                    <button onClick={onBack} className="text-gray-500 hover:text-gray-800 mb-6 flex items-center font-medium transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-white border flex items-center justify-center mr-2 shadow-sm">
+                            <i className="fas fa-arrow-left text-sm"></i>
+                        </div>
+                        Back to Dashboard
                     </button>
                     
-                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900">{course.CourseName}</h1>
-                        <p className="text-gray-600 mt-2">{course.Description}</p>
+                    <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 mb-8">
+                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{course.CourseName}</h1>
+                        <p className="text-gray-600 leading-relaxed">{course.Description}</p>
+                        <div className="mt-4 flex items-center space-x-4">
+                            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100">
+                                <i className="far fa-clock mr-1"></i> {course.DurationWeeks} Weeks
+                            </span>
+                        </div>
                     </div>
 
                     <div className="space-y-4">
-                        {course.lessons.map((lesson, idx) => (
-                            <div key={lesson.LessonID} className={`odoo-card p-4 flex justify-between items-center ${lesson.isLocked ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
-                                <div className="flex items-center">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${lesson.isLocked ? 'bg-gray-200 text-gray-500' : (lesson.isCompleted ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600')}`}>
-                                        <i className={`fas ${lesson.isLocked ? 'fa-lock' : (lesson.isCompleted ? 'fa-check' : 'fa-play')}`}></i>
+                        {course.lessons && course.lessons.map((lesson, idx) => (
+                            <div key={lesson.LessonID} className={`odoo-card p-4 md:p-6 flex flex-col md:flex-row justify-between items-start md:items-center transition-colors ${lesson.isLocked ? 'bg-gray-50' : 'bg-white hover:border-purple-300'}`}>
+                                <div className="flex items-start mb-4 md:mb-0">
+                                    <div className={`w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center mr-5 ${lesson.isLocked ? 'bg-gray-200 text-gray-400' : (lesson.isCompleted ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600')}`}>
+                                        <i className={`fas ${lesson.isLocked ? 'fa-lock' : (lesson.isCompleted ? 'fa-check' : 'fa-play')} text-lg`}></i>
                                     </div>
                                     <div>
-                                        <h5 className="font-bold text-gray-800">Week {lesson.Week}: {lesson.LessonTitle}</h5>
-                                        <span className="text-xs text-gray-500">Term {lesson.Term} • {lesson.Duration} mins</span>
+                                        <div className="flex items-center mb-1">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 mr-2">Week {lesson.Week}</span>
+                                            {lesson.isCompleted && <span className="text-xs bg-green-100 text-green-800 px-2 rounded-full">Completed</span>}
+                                        </div>
+                                        <h5 className={`font-bold text-lg ${lesson.isLocked ? 'text-gray-400' : 'text-gray-800'}`}>{lesson.LessonTitle}</h5>
+                                        <span className="text-sm text-gray-500">Term {lesson.Term} • {lesson.Duration} mins estimate</span>
                                     </div>
                                 </div>
                                 {lesson.isLocked ? (
-                                    <span className="text-xs text-gray-400 italic">Available later</span>
+                                    <div className="flex items-center text-gray-400 text-sm italic bg-gray-100 px-3 py-1 rounded">
+                                        <i className="fas fa-lock mr-2"></i> Locked
+                                    </div>
                                 ) : (
                                     <button 
                                         onClick={() => onSelectLesson(lesson)}
-                                        className="px-4 py-2 border border-purple-600 text-purple-600 rounded text-sm font-medium hover:bg-purple-50"
+                                        className={`px-6 py-2 border rounded-md text-sm font-bold shadow-sm transition-all ${lesson.isCompleted ? 'border-gray-300 text-gray-600 hover:bg-gray-50' : 'border-purple-600 text-purple-600 hover:bg-purple-50'}`}
                                     >
-                                        {lesson.isCompleted ? 'Review' : 'Start'}
+                                        {lesson.isCompleted ? 'Review Lesson' : 'Start Learning'}
                                     </button>
                                 )}
                             </div>
@@ -201,87 +255,128 @@
             const [assignmentLink, setAssignmentLink] = useState("");
             const [submitting, setSubmitting] = useState(false);
             const [message, setMessage] = useState("");
+            const [errorMsg, setErrorMsg] = useState("");
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 setSubmitting(true);
-                await onSubmitAssignment(lesson.LessonID, assignmentLink, "Workbook Submission");
+                setErrorMsg("");
+                setMessage("");
+                
+                const result = await onSubmitAssignment(lesson.LessonID, assignmentLink, "Workbook Submission");
+                
                 setSubmitting(false);
-                setMessage("Assignment submitted successfully!");
+                if (result && result.success) {
+                    setMessage("Assignment submitted successfully!");
+                    setAssignmentLink("");
+                } else {
+                    setErrorMsg("Submission failed. Please try again.");
+                }
             };
 
             return (
-                <div className="flex flex-col h-full">
-                    <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
-                        <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm">
+                <div className="flex flex-col h-full bg-white">
+                    <div className="border-b px-6 py-4 flex items-center justify-between bg-white shadow-sm z-10">
+                        <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm font-medium flex items-center">
                             <i className="fas fa-arrow-left mr-2"></i> Back to Course
                         </button>
-                        <h2 className="font-bold text-lg truncate max-w-xl">{lesson.LessonTitle}</h2>
-                        <div></div>
+                        <h2 className="font-bold text-lg truncate max-w-xl hidden md:block">{lesson.LessonTitle}</h2>
+                        <div className="w-20"></div> {/* Spacer */}
                     </div>
                     
-                    <div className="flex flex-1 overflow-hidden">
-                        <div className="flex-1 overflow-y-auto p-6 bg-black flex items-center justify-center">
-                            <div className="text-center text-white">
-                                <i className="fas fa-video fa-3x mb-4 text-gray-500"></i>
-                                <h3 className="text-xl mb-4">Lesson Content</h3>
+                    <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-y-auto bg-gray-100 flex flex-col items-center p-4 md:p-8">
+                            <div className="w-full max-w-4xl bg-black rounded-lg shadow-2xl overflow-hidden aspect-video relative flex items-center justify-center">
                                 {lesson.ContentURL && lesson.ContentURL.includes('youtube') ? (
-                                     <div className="aspect-w-16 aspect-h-9 w-full max-w-3xl">
-                                        <iframe 
-                                            src={lesson.ContentURL.replace("watch?v=", "embed/")} 
-                                            className="w-full h-96 border-0" 
-                                            allowFullScreen
-                                        ></iframe>
-                                     </div>
+                                     <iframe 
+                                        src={lesson.ContentURL.replace("watch?v=", "embed/")} 
+                                        className="w-full h-full border-0" 
+                                        allowFullScreen
+                                        title="Lesson Video"
+                                    ></iframe>
                                 ) : (
-                                    <a href={lesson.ContentURL} target="_blank" className="odoo-btn-primary px-6 py-3 rounded">
-                                        Open Material in New Tab <i className="fas fa-external-link-alt ml-2"></i>
-                                    </a>
+                                    <div className="text-center p-10">
+                                        <i className="fas fa-external-link-alt fa-3x text-white mb-4 opacity-50"></i>
+                                        <p className="text-white mb-6">This content is hosted externally.</p>
+                                        <a href={lesson.ContentURL} target="_blank" className="odoo-btn-primary px-8 py-3 rounded font-bold inline-block">
+                                            Open Learning Material
+                                        </a>
+                                    </div>
                                 )}
+                            </div>
+                            <div className="w-full max-w-4xl mt-6 md:hidden">
+                                <h2 className="font-bold text-xl mb-2">{lesson.LessonTitle}</h2>
+                                <p className="text-gray-600 text-sm">Duration: {lesson.Duration} mins</p>
                             </div>
                         </div>
 
-                        <div className="w-80 bg-white border-l overflow-y-auto p-6">
-                            <h3 className="font-bold text-gray-800 mb-4">Assignment</h3>
-                            <div className="bg-blue-50 p-4 rounded text-sm text-blue-800 mb-4">
-                                <i className="fas fa-info-circle mr-1"></i> Workbook Required.
-                                <br/>Please complete the workbook for this module and upload it to your Google Drive, then paste the shareable link below.
+                        {/* Sidebar: Assignment & Resources */}
+                        <div className="w-full md:w-96 bg-white border-l overflow-y-auto p-6 shadow-xl z-10">
+                            <div className="mb-8">
+                                <h3 className="font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+                                    <i className="fas fa-tasks mr-2 text-purple-600"></i> Assignment
+                                </h3>
+                                <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg text-sm text-blue-800 mb-4">
+                                    <strong className="block mb-1">Instructions:</strong>
+                                    Complete the workbook for this module, upload it to your Google Drive, ensure sharing is set to "Anyone with link", and paste the link below.
+                                </div>
+
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Google Drive Link</label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <i className="fab fa-google-drive text-gray-400"></i>
+                                            </div>
+                                            <input 
+                                                type="url" 
+                                                placeholder="https://drive.google.com/..."
+                                                className="w-full border border-gray-300 rounded pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                                                value={assignmentLink}
+                                                onChange={(e) => setAssignmentLink(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <button 
+                                        type="submit" 
+                                        disabled={submitting}
+                                        className={`w-full py-2.5 rounded text-sm font-bold text-white shadow-md transition-all ${submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 transform hover:-translate-y-0.5'}`}
+                                    >
+                                        {submitting ? 'Submitting...' : 'Submit Workbook'}
+                                    </button>
+                                    {message && <div className="p-3 bg-green-50 text-green-700 text-xs rounded border border-green-200 flex items-center"><i className="fas fa-check-circle mr-2"></i> {message}</div>}
+                                    {errorMsg && <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200 flex items-center"><i className="fas fa-exclamation-circle mr-2"></i> {errorMsg}</div>}
+                                </form>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Google Drive Link</label>
-                                    <input 
-                                        type="url" 
-                                        placeholder="https://drive.google.com/..."
-                                        className="w-full border rounded px-3 py-2 text-sm"
-                                        value={assignmentLink}
-                                        onChange={(e) => setAssignmentLink(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <button 
-                                    type="submit" 
-                                    disabled={submitting}
-                                    className={`w-full py-2 rounded text-sm font-bold text-white ${submitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
-                                >
-                                    {submitting ? 'Submitting...' : 'Submit Workbook'}
-                                </button>
-                                {message && <p className="text-green-600 text-xs text-center">{message}</p>}
-                            </form>
-
-                            <hr className="my-6"/>
-                            
-                            <h3 className="font-bold text-gray-800 mb-4">Resources</h3>
-                            <ul className="text-sm space-y-2">
-                                <li><a href="#" className="text-purple-600 hover:underline"><i className="fas fa-file-pdf mr-2"></i>Slide Deck PDF</a></li>
-                                <li><a href="#" className="text-purple-600 hover:underline"><i className="fas fa-file-excel mr-2"></i>Workbook Template</a></li>
-                            </ul>
+                            <div>
+                                <h3 className="font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+                                    <i className="fas fa-paperclip mr-2 text-gray-400"></i> Resources
+                                </h3>
+                                <ul className="text-sm space-y-3">
+                                    <li>
+                                        <a href="#" className="flex items-center p-2 hover:bg-gray-50 rounded group transition">
+                                            <span className="w-8 h-8 rounded bg-red-100 text-red-500 flex items-center justify-center mr-3 group-hover:bg-red-200 transition"><i className="fas fa-file-pdf"></i></span>
+                                            <span className="text-gray-600 group-hover:text-gray-900">Module Slide Deck</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" className="flex items-center p-2 hover:bg-gray-50 rounded group transition">
+                                            <span className="w-8 h-8 rounded bg-green-100 text-green-500 flex items-center justify-center mr-3 group-hover:bg-green-200 transition"><i className="fas fa-file-excel"></i></span>
+                                            <span className="text-gray-600 group-hover:text-gray-900">Workbook Template</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
             );
         }
+
+        // --- MAIN APP ---
 
         function App() {
             const [user, setUser] = useState(null);
@@ -290,47 +385,56 @@
             const [selectedCourse, setSelectedCourse] = useState(null);
             const [selectedLesson, setSelectedLesson] = useState(null);
             const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
 
             useEffect(() => {
                 const savedUser = localStorage.getItem("rta_user");
                 if (savedUser) {
-                    const parsedUser = JSON.parse(savedUser);
-                    setUser(parsedUser);
-                    fetchStudentData(parsedUser.id);
+                    try {
+                        const parsedUser = JSON.parse(savedUser);
+                        setUser(parsedUser);
+                        fetchStudentData(parsedUser.id);
+                    } catch (e) {
+                        localStorage.removeItem("rta_user");
+                    }
                 }
             }, []);
 
             const fetchStudentData = async (userId) => {
                 setLoading(true);
+                setError(null);
                 try {
                     const response = await fetch(API_URL + "?action=getStudentData&userId=" + userId);
                     const result = await response.json();
+                    
                     if (result.success) {
                         setStudentData(result);
                     } else {
-                        alert("Error loading profile: " + result.error);
+                        console.error("API Error:", result.error);
+                        setError(result.error);
+                        // If student data not found, logout to prevent loop
+                        if(result.error && result.error.includes("not found")) {
+                             // handleLogout(); // Optional: force logout
+                        }
                     }
                 } catch (e) {
-                    console.error(e);
-                    alert("Network error: Could not fetch profile data.");
+                    console.error("Fetch Error:", e);
+                    setError("Network Error: Could not connect to the Learning System. Please check your internet connection.");
                 }
                 setLoading(false);
             };
 
             const handleLogin = async (email, password) => {
                 setLoading(true);
+                setError(null);
                 try {
-                    // FIX: Force text/plain content type to avoid CORS preflight
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         body: JSON.stringify({ action: "login", email, password }),
-                        headers: {
-                            "Content-Type": "text/plain;charset=utf-8",
-                        },
+                         headers: { "Content-Type": "text/plain;charset=utf-8" }
                     });
                     
                     const text = await response.text();
-                    
                     try {
                         const result = JSON.parse(text);
                         if (result.success) {
@@ -341,12 +445,10 @@
                             alert(result.error);
                         }
                     } catch (e) {
-                        console.error("Server returned non-JSON:", text);
-                        alert("Connection failed. Please check if the Web App URL is correct and deployed as 'Anyone'.");
+                         alert("Server Error: The system returned an invalid response. Check Web App URL.");
                     }
                 } catch (e) {
-                    alert("Login failed. Network Error (check console).");
-                    console.error(e);
+                    alert("Network Error: Failed to log in.");
                 }
                 setLoading(false);
             };
@@ -368,69 +470,100 @@
                     return result;
                 } catch(e) {
                     console.error(e);
+                    return { success: false };
                 }
             }
 
             const handleLogout = () => {
                 setUser(null);
                 setStudentData(null);
+                setError(null);
+                setView("dashboard");
                 localStorage.removeItem("rta_user");
             };
 
+            // RENDER LOGIC
             if (!user) return <Login onLogin={handleLogin} loading={loading} />;
             
-            if (loading && !studentData) return (
-                <div className="h-screen flex items-center justify-center flex-col">
+            // Loading State
+            if (loading && !studentData && !error) return (
+                <div className="h-screen flex items-center justify-center flex-col bg-gray-50">
                     <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
-                    <p className="text-gray-500">Loading your Academy...</p>
+                    <p className="text-gray-500 font-medium animate-pulse">Synchronizing with Academy...</p>
                 </div>
             );
 
+            // Error State (Crash Prevention)
+            if (error && !studentData) return (
+                <div className="h-screen flex items-center justify-center flex-col bg-gray-50 p-6">
+                    <div className="bg-white p-8 rounded shadow-md max-w-md text-center border-t-4 border-red-500">
+                        <i className="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                        <h2 className="text-xl font-bold text-gray-800 mb-2">Unable to Load Dashboard</h2>
+                        <p className="text-gray-600 mb-6 text-sm">{error}</p>
+                        <div className="flex gap-3 justify-center">
+                            <button onClick={() => fetchStudentData(user.id)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-bold">
+                                <i className="fas fa-sync-alt mr-2"></i> Retry
+                            </button>
+                            <button onClick={handleLogout} className="px-4 py-2 border border-red-200 text-red-600 rounded hover:bg-red-50 font-bold">
+                                Log Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Main App Layout
             return (
-                <div className="flex h-screen overflow-hidden">
-                    <div className="w-64 odoo-sidebar flex-shrink-0 hidden md:flex flex-col">
-                        <div className="h-16 flex items-center px-6 border-b">
-                            <span className="font-bold text-xl text-purple-800">RaveOne</span>
+                <div className="flex h-screen overflow-hidden bg-gray-50">
+                    {/* Desktop Sidebar */}
+                    <div className="w-64 odoo-sidebar flex-shrink-0 hidden md:flex flex-col z-20 shadow-sm">
+                        <div className="h-16 flex items-center px-6 border-b bg-white">
+                            <span className="font-bold text-xl text-purple-800 tracking-tight">RaveOne</span>
                         </div>
                         <div className="flex-1 overflow-y-auto py-4">
                             <nav className="space-y-1">
-                                <a href="#" onClick={() => setView('dashboard')} className={`sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 ${view === 'dashboard' ? 'active' : ''}`}>
-                                    <i className="fas fa-th-large w-6"></i> Dashboard
-                                </a>
-                                <a href="#" className="sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                                    <i className="fas fa-calendar-check w-6"></i> Exams
-                                </a>
-                                <a href="#" className="sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                                    <i className="fas fa-award w-6"></i> Grades
-                                </a>
-                                <a href="#" className="sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
-                                    <i className="fas fa-user w-6"></i> Profile
-                                </a>
+                                <button onClick={() => setView('dashboard')} className={`w-full text-left sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors ${view === 'dashboard' ? 'active' : ''}`}>
+                                    <i className="fas fa-th-large w-6 text-center"></i> <span className="ml-2">Dashboard</span>
+                                </button>
+                                <button className="w-full text-left sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                                    <i className="fas fa-calendar-check w-6 text-center"></i> <span className="ml-2">Exam Schedule</span>
+                                </button>
+                                <button className="w-full text-left sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                                    <i className="fas fa-award w-6 text-center"></i> <span className="ml-2">My Grades</span>
+                                </button>
+                                <button className="w-full text-left sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition-colors">
+                                    <i className="fas fa-user w-6 text-center"></i> <span className="ml-2">Profile</span>
+                                </button>
                             </nav>
                         </div>
-                        <div className="p-4 border-t">
+                        <div className="p-4 border-t bg-gray-50">
                              <div className="flex items-center mb-3">
-                                <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold mr-2">
+                                <div className="w-10 h-10 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold mr-3 shadow-sm border border-purple-100">
                                     {user.name.charAt(0)}
                                 </div>
-                                <div>
-                                    <div className="text-sm font-medium text-gray-700">{user.name}</div>
-                                    <div className="text-xs text-gray-500">Student</div>
+                                <div className="overflow-hidden">
+                                    <div className="text-sm font-bold text-gray-800 truncate">{user.name}</div>
+                                    <div className="text-xs text-gray-500 truncate">{user.email}</div>
                                 </div>
                             </div>
-                            <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-700 font-medium">
-                                <i className="fas fa-sign-out-alt mr-1"></i> Logout
+                            <button onClick={handleLogout} className="w-full py-2 text-xs border border-red-200 text-red-600 hover:bg-red-50 rounded transition font-bold flex items-center justify-center">
+                                <i className="fas fa-sign-out-alt mr-2"></i> Sign Out
                             </button>
                         </div>
                     </div>
 
+                    {/* Main Content Area */}
                     <div className="flex-1 flex flex-col overflow-hidden relative">
-                        <div className="md:hidden h-14 bg-white border-b flex items-center justify-between px-4">
-                             <span className="font-bold text-lg text-purple-800">RaveOne</span>
-                             <button onClick={handleLogout} className="text-gray-500"><i className="fas fa-sign-out-alt"></i></button>
+                        {/* Mobile Header */}
+                        <div className="md:hidden h-16 bg-white border-b flex items-center justify-between px-4 shadow-sm z-20">
+                             <span className="font-bold text-xl text-purple-800">RaveOne</span>
+                             <div className="flex items-center">
+                                 <span className="text-sm font-bold mr-3 text-gray-700">{user.name.split(' ')[0]}</span>
+                                 <button onClick={handleLogout} className="text-gray-400 hover:text-red-500"><i className="fas fa-sign-out-alt text-lg"></i></button>
+                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto bg-gray-50">
+                        <div className="flex-1 overflow-y-auto bg-gray-50/50">
                             {view === 'dashboard' && <Dashboard data={studentData} onNavigate={(v, data) => { setView(v); setSelectedCourse(data); }} />}
                             {view === 'course' && <CourseView course={selectedCourse} onBack={() => setView('dashboard')} onSelectLesson={(l) => { setSelectedLesson(l); setView('lesson'); }} />}
                             {view === 'lesson' && <LessonPlayer lesson={selectedLesson} user={user} onBack={() => setView('course')} onSubmitAssignment={handleSubmitAssignment} />}
