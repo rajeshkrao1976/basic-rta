@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaveOne Academy | Master LMS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #f6f7fa; }
+        .odoo-nav { background-color: #714B67; color: white; } 
+        .odoo-sidebar { background-color: #ffffff; border-right: 1px solid #e2e8f0; }
+        .odoo-card { background: white; border: 1px solid #e2e8f0; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .odoo-btn-primary { background-color: #008784; color: white; } 
+        .odoo-btn-primary:hover { background-color: #006e6b; }
+        .sidebar-item.active { background-color: #f3f4f6; border-left: 3px solid #714B67; color: #714B67; font-weight: 500; }
+        .loader { border-top-color: #714B67; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- CONFIGURATION ---
+        const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE"; 
+
+        const { useState, useEffect } = React;
+
+        function Login({ onLogin, loading }) {
+            const [email, setEmail] = useState("");
+            const [password, setPassword] = useState("");
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onLogin(email, password);
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-100">
+                    <div className="odoo-card p-8 w-full max-w-md">
+                        <div className="text-center mb-8">
+                            <h1 className="text-2xl font-bold text-gray-800">RaveOne Academy</h1>
+                            <p className="text-gray-500 text-sm mt-1">SME Management & Growth</p>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <div className="mb-4">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                                <input 
+                                    type="email" 
+                                    className="w-full px-3 py-2 border rounded focus:outline-none focus:border-purple-500"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                                <input 
+                                    type="password" 
+                                    className="w-full px-3 py-2 border rounded focus:outline-none focus:border-purple-500"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <button 
+                                type="submit" 
+                                disabled={loading}
+                                className="w-full odoo-btn-primary py-2 rounded font-bold transition duration-200"
+                            >
+                                {loading ? "Authenticating..." : "Log In"}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        function Dashboard({ data, onNavigate }) {
+            const { student, enrollment, academicStatus, courses } = data;
+            const completedLessons = courses.reduce((acc, c) => acc + c.lessons.filter(l => l.isCompleted).length, 0);
+            const totalLessons = courses.reduce((acc, c) => acc + c.lessons.length, 0);
+            const overallProgress = Math.round((completedLessons / totalLessons) * 100) || 0;
+
+            return (
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
+                        <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                            {enrollment.Track || "General"} Track
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <div className="odoo-card p-4">
+                            <div className="text-gray-500 text-sm">Current Status</div>
+                            <div className="text-xl font-bold text-gray-800">
+                                {academicStatus.isBreak ? "Break Week" : `Term ${academicStatus.currentTerm}`}
+                            </div>
+                            <div className="text-xs text-gray-400">Week {academicStatus.currentWeek}</div>
+                        </div>
+                        <div className="odoo-card p-4">
+                            <div className="text-gray-500 text-sm">Program Progress</div>
+                            <div className="text-xl font-bold text-gray-800">{overallProgress}%</div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                <div className="bg-purple-600 h-1.5 rounded-full" style={{width: `${overallProgress}%`}}></div>
+                            </div>
+                        </div>
+                        <div className="odoo-card p-4">
+                            <div className="text-gray-500 text-sm">Enrollment Date</div>
+                            <div className="text-xl font-bold text-gray-800">
+                                {new Date(enrollment.EnrollmentDate).toLocaleDateString()}
+                            </div>
+                            <div className="text-xs text-gray-400">{academicStatus.daysEnrolled} days ago</div>
+                        </div>
+                         <div className="odoo-card p-4">
+                            <div className="text-gray-500 text-sm">Active Courses</div>
+                            <div className="text-xl font-bold text-gray-800">
+                                {courses.length}
+                            </div>
+                            <div className="text-xs text-gray-400">Parallel Delivery</div>
+                        </div>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-gray-800 mb-4">My Courses</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {courses.map(course => (
+                            <div key={course.CourseID} className="odoo-card p-0 flex flex-col h-full hover:shadow-md transition">
+                                <div className="p-5 flex-grow">
+                                    <div className="flex justify-between items-start">
+                                        <h4 className="font-bold text-lg text-gray-800 mb-2">{course.CourseName}</h4>
+                                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">{course.Code}</span>
+                                    </div>
+                                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">{course.Description}</p>
+                                    <div className="flex items-center text-sm text-gray-500">
+                                        <i className="fas fa-book-open mr-2"></i> {course.lessons.length} Lessons
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 px-5 py-3 border-t border-gray-100">
+                                    <button 
+                                        onClick={() => onNavigate('course', course)}
+                                        className="text-purple-700 text-sm font-bold hover:text-purple-900"
+                                    >
+                                        Continue Learning <i className="fas fa-arrow-right ml-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function CourseView({ course, onBack, onSelectLesson }) {
+            return (
+                <div className="p-6">
+                    <button onClick={onBack} className="text-gray-500 hover:text-gray-800 mb-4">
+                        <i className="fas fa-arrow-left mr-2"></i> Back to Dashboard
+                    </button>
+                    
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
+                        <h1 className="text-2xl font-bold text-gray-900">{course.CourseName}</h1>
+                        <p className="text-gray-600 mt-2">{course.Description}</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        {course.lessons.map((lesson, idx) => (
+                            <div key={lesson.LessonID} className={`odoo-card p-4 flex justify-between items-center ${lesson.isLocked ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
+                                <div className="flex items-center">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${lesson.isLocked ? 'bg-gray-200 text-gray-500' : (lesson.isCompleted ? 'bg-green-100 text-green-600' : 'bg-purple-100 text-purple-600')}`}>
+                                        <i className={`fas ${lesson.isLocked ? 'fa-lock' : (lesson.isCompleted ? 'fa-check' : 'fa-play')}`}></i>
+                                    </div>
+                                    <div>
+                                        <h5 className="font-bold text-gray-800">Week {lesson.Week}: {lesson.LessonTitle}</h5>
+                                        <span className="text-xs text-gray-500">Term {lesson.Term} • {lesson.Duration} mins</span>
+                                    </div>
+                                </div>
+                                {lesson.isLocked ? (
+                                    <span className="text-xs text-gray-400 italic">Available later</span>
+                                ) : (
+                                    <button 
+                                        onClick={() => onSelectLesson(lesson)}
+                                        className="px-4 py-2 border border-purple-600 text-purple-600 rounded text-sm font-medium hover:bg-purple-50"
+                                    >
+                                        {lesson.isCompleted ? 'Review' : 'Start'}
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        function LessonPlayer({ lesson, user, onBack, onSubmitAssignment }) {
+            const [assignmentLink, setAssignmentLink] = useState("");
+            const [submitting, setSubmitting] = useState(false);
+            const [message, setMessage] = useState("");
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setSubmitting(true);
+                await onSubmitAssignment(lesson.LessonID, assignmentLink, "Workbook Submission");
+                setSubmitting(false);
+                setMessage("Assignment submitted successfully!");
+            };
+
+            return (
+                <div className="flex flex-col h-full">
+                    <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
+                        <button onClick={onBack} className="text-gray-600 hover:text-gray-900 text-sm">
+                            <i className="fas fa-arrow-left mr-2"></i> Back to Course
+                        </button>
+                        <h2 className="font-bold text-lg truncate max-w-xl">{lesson.LessonTitle}</h2>
+                        <div></div>
+                    </div>
+                    
+                    <div className="flex flex-1 overflow-hidden">
+                        <div className="flex-1 overflow-y-auto p-6 bg-black flex items-center justify-center">
+                            <div className="text-center text-white">
+                                <i className="fas fa-video fa-3x mb-4 text-gray-500"></i>
+                                <h3 className="text-xl mb-4">Lesson Content</h3>
+                                {lesson.ContentURL && lesson.ContentURL.includes('youtube') ? (
+                                     <div className="aspect-w-16 aspect-h-9 w-full max-w-3xl">
+                                        <iframe 
+                                            src={lesson.ContentURL.replace("watch?v=", "embed/")} 
+                                            className="w-full h-96 border-0" 
+                                            allowFullScreen
+                                        ></iframe>
+                                     </div>
+                                ) : (
+                                    <a href={lesson.ContentURL} target="_blank" className="odoo-btn-primary px-6 py-3 rounded">
+                                        Open Material in New Tab <i className="fas fa-external-link-alt ml-2"></i>
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="w-80 bg-white border-l overflow-y-auto p-6">
+                            <h3 className="font-bold text-gray-800 mb-4">Assignment</h3>
+                            <div className="bg-blue-50 p-4 rounded text-sm text-blue-800 mb-4">
+                                <i className="fas fa-info-circle mr-1"></i> Workbook Required.
+                                <br/>Please complete the workbook for this module and upload it to your Google Drive, then paste the shareable link below.
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1">Google Drive Link</label>
+                                    <input 
+                                        type="url" 
+                                        placeholder="https://drive.google.com/..."
+                                        className="w-full border rounded px-3 py-2 text-sm"
+                                        value={assignmentLink}
+                                        onChange={(e) => setAssignmentLink(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <button 
+                                    type="submit" 
+                                    disabled={submitting}
+                                    className={`w-full py-2 rounded text-sm font-bold text-white ${submitting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+                                >
+                                    {submitting ? 'Submitting...' : 'Submit Workbook'}
+                                </button>
+                                {message && <p className="text-green-600 text-xs text-center">{message}</p>}
+                            </form>
+
+                            <hr className="my-6"/>
+                            
+                            <h3 className="font-bold text-gray-800 mb-4">Resources</h3>
+                            <ul className="text-sm space-y-2">
+                                <li><a href="#" className="text-purple-600 hover:underline"><i className="fas fa-file-pdf mr-2"></i>Slide Deck PDF</a></li>
+                                <li><a href="#" className="text-purple-600 hover:underline"><i className="fas fa-file-excel mr-2"></i>Workbook Template</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [user, setUser] = useState(null);
+            const [studentData, setStudentData] = useState(null);
+            const [view, setView] = useState("dashboard"); 
+            const [selectedCourse, setSelectedCourse] = useState(null);
+            const [selectedLesson, setSelectedLesson] = useState(null);
+            const [loading, setLoading] = useState(false);
+
+            useEffect(() => {
+                const savedUser = localStorage.getItem("rta_user");
+                if (savedUser) {
+                    const parsedUser = JSON.parse(savedUser);
+                    setUser(parsedUser);
+                    fetchStudentData(parsedUser.id);
+                }
+            }, []);
+
+            const fetchStudentData = async (userId) => {
+                setLoading(true);
+                try {
+                    const response = await fetch(API_URL + "?action=getStudentData&userId=" + userId);
+                    const result = await response.json();
+                    if (result.success) {
+                        setStudentData(result);
+                    } else {
+                        alert("Error loading profile: " + result.error);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Network error: Could not fetch profile data.");
+                }
+                setLoading(false);
+            };
+
+            const handleLogin = async (email, password) => {
+                setLoading(true);
+                try {
+                    // FIX: Force text/plain content type to avoid CORS preflight
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: "login", email, password }),
+                        headers: {
+                            "Content-Type": "text/plain;charset=utf-8",
+                        },
+                    });
+                    
+                    const text = await response.text();
+                    
+                    try {
+                        const result = JSON.parse(text);
+                        if (result.success) {
+                            setUser(result.user);
+                            localStorage.setItem("rta_user", JSON.stringify(result.user));
+                            fetchStudentData(result.user.id);
+                        } else {
+                            alert(result.error);
+                        }
+                    } catch (e) {
+                        console.error("Server returned non-JSON:", text);
+                        alert("Connection failed. Please check if the Web App URL is correct and deployed as 'Anyone'.");
+                    }
+                } catch (e) {
+                    alert("Login failed. Network Error (check console).");
+                    console.error(e);
+                }
+                setLoading(false);
+            };
+
+            const handleSubmitAssignment = async (lessonId, link, comments) => {
+                 try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ 
+                            action: "submitAssignment", 
+                            userId: user.id,
+                            lessonId, 
+                            link, 
+                            comments 
+                        }),
+                        headers: { "Content-Type": "text/plain;charset=utf-8" }
+                    });
+                    const result = await response.json();
+                    return result;
+                } catch(e) {
+                    console.error(e);
+                }
+            }
+
+            const handleLogout = () => {
+                setUser(null);
+                setStudentData(null);
+                localStorage.removeItem("rta_user");
+            };
+
+            if (!user) return <Login onLogin={handleLogin} loading={loading} />;
+            
+            if (loading && !studentData) return (
+                <div className="h-screen flex items-center justify-center flex-col">
+                    <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+                    <p className="text-gray-500">Loading your Academy...</p>
+                </div>
+            );
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    <div className="w-64 odoo-sidebar flex-shrink-0 hidden md:flex flex-col">
+                        <div className="h-16 flex items-center px-6 border-b">
+                            <span className="font-bold text-xl text-purple-800">RaveOne</span>
+                        </div>
+                        <div className="flex-1 overflow-y-auto py-4">
+                            <nav className="space-y-1">
+                                <a href="#" onClick={() => setView('dashboard')} className={`sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 ${view === 'dashboard' ? 'active' : ''}`}>
+                                    <i className="fas fa-th-large w-6"></i> Dashboard
+                                </a>
+                                <a href="#" className="sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                                    <i className="fas fa-calendar-check w-6"></i> Exams
+                                </a>
+                                <a href="#" className="sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                                    <i className="fas fa-award w-6"></i> Grades
+                                </a>
+                                <a href="#" className="sidebar-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50">
+                                    <i className="fas fa-user w-6"></i> Profile
+                                </a>
+                            </nav>
+                        </div>
+                        <div className="p-4 border-t">
+                             <div className="flex items-center mb-3">
+                                <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center text-purple-700 font-bold mr-2">
+                                    {user.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <div className="text-sm font-medium text-gray-700">{user.name}</div>
+                                    <div className="text-xs text-gray-500">Student</div>
+                                </div>
+                            </div>
+                            <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-700 font-medium">
+                                <i className="fas fa-sign-out-alt mr-1"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col overflow-hidden relative">
+                        <div className="md:hidden h-14 bg-white border-b flex items-center justify-between px-4">
+                             <span className="font-bold text-lg text-purple-800">RaveOne</span>
+                             <button onClick={handleLogout} className="text-gray-500"><i className="fas fa-sign-out-alt"></i></button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto bg-gray-50">
+                            {view === 'dashboard' && <Dashboard data={studentData} onNavigate={(v, data) => { setView(v); setSelectedCourse(data); }} />}
+                            {view === 'course' && <CourseView course={selectedCourse} onBack={() => setView('dashboard')} onSelectLesson={(l) => { setSelectedLesson(l); setView('lesson'); }} />}
+                            {view === 'lesson' && <LessonPlayer lesson={selectedLesson} user={user} onBack={() => setView('course')} onSubmitAssignment={handleSubmitAssignment} />}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
